@@ -1,6 +1,5 @@
 # Changelog
 
-
 # [fa/board] (25/08/2025)
 
 ### Added
