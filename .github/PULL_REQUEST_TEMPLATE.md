@@ -1,21 +1,21 @@
-<!--- Proporciona un resumen general de tus cambios en el título de arriba -->
+<!--- Provide a general summary of your changes in the Title above -->
 
-## ¿Dónde puedo probar esta funcionalidad?
-<!--- Explica cómo se puede acceder a esta funcionalidad -->
+## Where can I try this functionality?
+<!--- Please explain how this functionality can be accessed -->
 
-## Capturas de pantalla
-<!--- Proporciona capturas de pantalla que muestren cómo funciona esta funcionalidad -->
+## Screenshot
+<!--- Please provide a screenshot of how this functionality performs-->
 
-## Tipos de cambios
-<!--- ¿Qué tipo de cambios introduce tu código? Marca con una `x` las casillas que correspondan: -->
-- [ ] Corrección de error (cambio que no rompe nada y soluciona un problema)
-- [ ] Nueva funcionalidad (cambio que no rompe nada y agrega una nueva característica)
-- [ ] Cambio importante (corrección o funcionalidad que hace que algo existente deje de funcionar como se esperaba)
+## Types of changes
+<!--- What types of changes does your code introduce? Put an `x` in all the boxes that apply: -->
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 
-## Lista de verificación:
-<!--- Revisa todos los siguientes puntos y marca con una `x` los que correspondan. -->
-- [ ] He actualizado el archivo `CHANGELOG.md` de acuerdo con los cambios realizados.  
-- [ ] He confirmado que estos cambios no tienen un impacto que deba discutirse con los clientes antes de implementar la funcionalidad.  
-      En caso de duda, PREGUNTAR.  
-- [ ] Otro desarrollador ha realizado una revisión de este PR y lo ha aprobado.  
-- [ ] He actualizado las tarjetas relacionadas en el backlog, y moveré esta tarea a "hecho" después del merge y el deploy.  
+## Checklist:
+<!--- Go over all the following points, and put an `x` in all the boxes that apply. -->
+- [ ] I have updated `CHANGELOG.md` accordingly.
+- [ ] I have determined that these changes have no impact which
+      have to be discussed with customers before deploying this feature.
+      If in doubt, ASK.
+- [ ] Another developer has performed a code review on this PR and approved it
