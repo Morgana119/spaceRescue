@@ -19,5 +19,5 @@
       have to be discussed with customers before deploying this feature.
       If in doubt, ASK.
 - [ ] Another developer has performed a code review on this PR and approved it
-- [ ] I have updated the related  cards in backlog, and will move this to "done" after
-      merge & deploy.
+
+
