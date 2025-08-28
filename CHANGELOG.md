@@ -5,6 +5,15 @@
 ### Added
 - Add dice assets
 
+# [Ale_flask_conection] (25/08/2025)
+
+### Added
+- Add info panel to unity project
+- Add flask server to connect the API. 
+
+### Changed
+- Changed the PULL_REQUEST_TEMPLATE.md
+
 # [fa/board] (23/08/2025)
 
 ### Added
