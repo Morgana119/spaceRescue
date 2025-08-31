@@ -8,6 +8,11 @@ agent_bp = Blueprint("agent_bp", __name__)
 def get_agent_state():
     return jsonify(agent.get_state())
 
+@agent_bp.route("/agent/pos", methods=["GET"])
+def pos_agent():
+    agent.get_next_position()
+    return jsonify({"x": agent.x, "y": agent.y})
+
 # Mandar acción desde Unity
 @agent_bp.route("/agent/move", methods=["POST"])
 def move_agent():
