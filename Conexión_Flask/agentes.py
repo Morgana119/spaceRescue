@@ -92,9 +92,9 @@ class ExplorerModel(Model):
       while (i < self.robots):
         x = self.random.randrange(self.width)
         y = self.random.randrange(self.height)
-        if self.grid.is_cell_empty( (x, y) ) and self.fireGrid[x, y] != 1:
+        if self.agentsGrid.is_cell_empty( (x, y) ) and self.fireGrid[x, y] != 1:
             agent = RobotAgent(self)
-            self.grid.place_agent(agent, (x, y))
+            self.agentsGrid.place_agent(agent, (x, y))
             self.schedule.add(agent)
             i += 1
 
@@ -110,7 +110,7 @@ class ExplorerModel(Model):
       y = self.random.randrange(self.height)   
       return x, y
    
-   def placeFire(self, y, x, coordinate): 
+   def placeFire(self,  y, x, coordinate): 
       if coordinate == 0:
          self.fireGrid[y-1, x] = 1
       elif coordinate == 1:
@@ -141,7 +141,7 @@ class ExplorerModel(Model):
                # ya no hay pared
                # actualizo vecinos que ya no hay pared
                self.wallsGrid[y, x, i] = 0
-               self.damagedWalls[y, x] += 1
+               self.damagedWalls += 1
             
             # hay una puerta cerrada
             elif self.wallsGrid[y, x, 1] == 3:
