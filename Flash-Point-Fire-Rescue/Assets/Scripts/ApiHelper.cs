@@ -36,8 +36,7 @@ public class ApiHelper : MonoBehaviour
         {
             yield return webRequest.SendWebRequest();
 
-            if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
-                webRequest.result == UnityWebRequest.Result.ProtocolError)
+            if (webRequest.isNetworkError)
             {
                 Debug.LogError("Error: " + webRequest.error);
                 lastPos = null;
@@ -51,7 +50,7 @@ public class ApiHelper : MonoBehaviour
         }
     }
 
-    IEnumerator MoveAgent(string action, string uri)
+    IEnumerator PostMoveAgent(string action, string uri)
     {
         string web_url_post = uri + "/agent/move";
         Debug.Log("Post: " + web_url_post);
@@ -77,11 +76,4 @@ public class ApiHelper : MonoBehaviour
             }
         }
     }
-}
-
-[System.Serializable]
-public class ActionData
-{
-    public string action;
-
 }
