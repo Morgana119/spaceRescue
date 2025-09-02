@@ -44,11 +44,12 @@ class Cell:
 
 
 class RobotAgent(Agent):
-    def __init__(self, model):
+    def __init__(self, model, agentId):
         super().__init__(model)
+        self.agentId = agentId
     
     def step(self):
-        print("Agente hizo su step")
+        print(f"Agente {self.agentId} hizo su step")
 
 
 
@@ -65,6 +66,8 @@ class ExplorerModel(Model):
         self.width = width
         self.height = height
         self.robots = 1
+        self.agentIndex = 0
+        self.currentStep = 0 
         
         # Se llena el grid de los estados de las paredes
         gridValues = [
@@ -83,7 +86,7 @@ class ExplorerModel(Model):
             ]
 
         # Se llena el grid de fuego con posiciones iniciales
-        firePositions = [(1,2), (1,2), (3,4), (3,5), (6,5)]
+        firePositions = [(1,1), (1,2), (3,4), (3,5), (6,5), (1, 4)]
         for x, y in firePositions:
             self.grid[y][x].fire = True
         
@@ -94,7 +97,7 @@ class ExplorerModel(Model):
             x = self.random.randrange(self.width)
             y = self.random.randrange(self.height)
             if self.agentsGrid.is_cell_empty( (x, y) ) and self.grid[y][x].fire == False:
-                agent = RobotAgent(self)
+                agent = RobotAgent(self, agentId = i)
                 self.agentsGrid.place_agent(agent, (x, y))
                 self.schedule.add(agent)
                 i += 1
@@ -111,31 +114,58 @@ class ExplorerModel(Model):
 
 
     def step(self):
-        self.schedule.step()
-        for y in range(self.height):
-            fila = []
-            for x in range(self.width):
-                fila.append(self.grid[y][x].walls)  # lista de muros de la celda
-            print(fila)
-        # x,y = self.RollDice()
-        # self.spreadFire(x, y)
+        agentIndex = self.currentStep % self.robots
+        agent = self.schedule.agents[agentIndex]
+        agent.step()
+
+        x,y = self.RollDice()
+        self.spreadFire(x, y)
 
     def RollDice(self,):
         x = self.random.randrange(self.width)
         y = self.random.randrange(self.height)   
         return x, y
     
-    def placeFire(self,  y, x, coordinate): 
-        if coordinate == 0:
-            self.grid[y-1][x].fire = True
-        elif coordinate == 1:
-            self.grid[y][x+1].fire = True
-        elif coordinate == 2:
-            self.grid[y+1][x].fire = True
-        elif coordinate == 3: 
-            self.grid[y][x-1].fire = True
+    def placeFire(self, y, x, coordinate):
+        moves = {
+            0: (-1, 0),
+            1: (0, 1),
+            2: (1, 0),
+            3: (0, -1)
+        }
+        dy, dx = moves[coordinate]
+        ny, nx = y + dy, x + dx
+
+        # sigue buscando hasta que encuentra un lugar sin fuego
+        while 0 <= ny < len(self.grid) and 0 <= nx < len(self.grid[0]):
+            if not self.grid[ny][nx].fire:
+                self.grid[ny][nx].fire = True
+                break
+
+            ny += dy
+            nx += dx
+
+
+    def updateNeighbors(self, x, y, coordinate, newStatus):
+        update = (coordinate + 2) % 4
+
+        moves = {
+            0: (-1, 0),
+            1: (0, 1),
+            2: (1, 0),
+            3: (0, -1)
+        }
+        dy, dx = moves[coordinate]
+        ny, nx = y + dy, x + dx 
+        if 0 <= ny < len(self.grid) and 0 <= nx < len(self.grid[0]):
+            self.grid[ny][nx].walls[update] = newStatus
+    
+    def IsCollapsed(self):
+        return (self.damagedWalls == 24)
 
     def spreadFire(self, x, y):
+        x = 1
+        y = 4
         if self.grid[y][x].fire == 0:
             self.grid[y][x].fire = True
         else : # explosion
@@ -143,11 +173,12 @@ class ExplorerModel(Model):
 
                 # no hay pared ni nada
                 if self.grid[y][x].walls[i] == 0:
-                    self.placeFire(self, y, x, i)
+                    self.placeFire( y, x, i)
 
                 # hay una pared completa
                 elif self.grid[y][x].walls[i] == 1:
                     # actualizar los vecinos de la pared dañada
+                    self.updateNeighbors(x, y, i, 2)
                     self.grid[y][x].walls[i] = 2
                     self.damagedWalls += 1
 
@@ -155,6 +186,7 @@ class ExplorerModel(Model):
                 elif self.grid[y][x].walls[i] == 2:
                     # ya no hay pared
                     # actualizo vecinos que ya no hay pared
+                    self.updateNeighbors(x, y, i, 0)
                     self.grid[y][x].walls[i] = 0
                     self.damagedWalls += 1
                 
@@ -162,8 +194,11 @@ class ExplorerModel(Model):
                 elif self.grid[y][x].walls[i] == 3:
                     # abro la puerta
                     # actualizo vecinos que ya no hay pared
+                    self.updateNeighbors(x, y, i, 0)
                     self.grid[y][x].walls[i] = 0
             
 
 model = ExplorerModel()
+model.print_grid()
+model.step()
 model.print_grid()
