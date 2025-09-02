@@ -1,7 +1,7 @@
 using UnityEngine; // Necesario para usar MonoBehaviour y JsonUtility
 using UnityEngine.Networking; // Para hacer peticiones HTTP (GET, POST)
 using System.Collections; // Para corutinas
-using System;
+//using System;
 
 
 public class ApiHelper : MonoBehaviour
@@ -12,13 +12,17 @@ public class ApiHelper : MonoBehaviour
     // Corutina que obtiene la posición actualizada del agente desde el servidor
     public IEnumerator pos_agent()
     {
-
+        // Endpoint que consulta el estado del agente
         string web_url_getPos = url + "/move/agents";
         Debug.Log("Get: " + web_url_getPos);
+
+        // Realiza la petición GET
         using (UnityWebRequest webRequest = UnityWebRequest.Get(web_url_getPos))
         {
+            // Espera a que termina la conexión
             yield return webRequest.SendWebRequest();
 
+            // Manejo de errores
             if (webRequest.isNetworkError)
             {
                 // Si falla la conexión, se muestra error y se resetea la variable
@@ -29,7 +33,7 @@ public class ApiHelper : MonoBehaviour
                 // Se recibe la respuesta JSON con "x" y "y"
                 string jsonResponse = webRequest.downloadHandler.text.Trim();
 
-                // Convierte el JSON recibido a la clase Variables
+                // Convierte el JSON recibido a la clase AgentsPayLoad
                 lastPayload = JsonUtility.FromJson<AgentsPayLoad>(jsonResponse);
 
                 // Muestra en consola la posición recibida desde Flask

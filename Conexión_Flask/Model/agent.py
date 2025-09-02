@@ -18,7 +18,7 @@ class Agent:
         # random.choice([-1, 0, 1]) elige un valor al azar (-1, 0 o 1)
         self.x += random.choice([-1, 0, 1])
 
-# Creamos 6 agentes con los nombres que usarás en Unity
+# Creamos 6 agentes con los nombres que se usan en Unity
 COLORS = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 # Diccionario: nombre -> instancia Agent
 agents = {name: Agent(name) for name in COLORS}

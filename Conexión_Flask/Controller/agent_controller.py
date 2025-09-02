@@ -28,10 +28,14 @@ def pos_agent():
 
 '''
 
+# Ruta para mover todos los agentes a la vez
 @agent_bp.route("/move/agents", methods=["GET"])
 def all_agents_pos():
+    # por cada agente se llama el metodo get_next_position()
     for ag in agents.values():
         ag.get_next_position()
-    
+
+    # Se agrega a un diccionario el estado actual que tiene   
     payload = {'agents' : [ag.get_state() for ag in agents.values()]}
+    # se manda en formato JSON
     return jsonify(payload)
