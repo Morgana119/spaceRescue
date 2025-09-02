@@ -1,5 +1,13 @@
 # Changelog
 
+# [Ale_flask_conection] (01/09/2025)
+
+### Added
+- Unity scripts for flask connection with comments
+
+### Changed
+- flask agent class
+
 # [fa/unity] (28/08/2025)
 
 ### Added
