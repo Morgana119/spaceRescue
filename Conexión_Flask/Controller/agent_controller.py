@@ -1,11 +1,13 @@
 # Importamos las librerías necesarias
 from flask import Blueprint, jsonify, request
-from Model.agent import agent # Importamos la instancia global del agente
+from Model.agent import agents  # diccionario con todos los agentes
+
 
 # Definimos un "Blueprint" llamado agent_bp
 # Un Blueprint en Flask sirve para organizar las rutas de manera modular
 agent_bp = Blueprint("agent_bp", __name__)
 
+'''
 # ------------------- RUTAS -------------------
 
 # Ruta para consultar el estado actual del agente
@@ -42,3 +44,12 @@ def move_agent():
 
     # Regresamos el estado actualizado del agente
     return jsonify(agent.get_state())
+'''
+
+@agent_bp.route("/move/agents", methods=["GET"])
+def all_agents_pos():
+    for ag in agents.values():
+        ag.get_next_position()
+    
+    payload = {'agents' : [ag.get_state() for ag in agents.values()]}
+    return jsonify(payload)

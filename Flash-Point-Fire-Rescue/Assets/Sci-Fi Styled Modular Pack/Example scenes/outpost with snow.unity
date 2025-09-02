@@ -5793,11 +5793,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 530270709}
   m_Mesh: {fileID: 4300000, guid: bf457f6799881e747bbd9e01d6dc3ef2, type: 3}
---- !u!1 &530526984 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7186561226226674200, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
-  m_PrefabInstance: {fileID: 6580994555718221787}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &547551095
 GameObject:
   m_ObjectHideFlags: 0
@@ -9293,10 +9288,10 @@ Transform:
   m_Children:
   - {fileID: 2012913667}
   - {fileID: 768477042}
+  - {fileID: 630447514}
   - {fileID: 2054660910}
   - {fileID: 1745234710}
   - {fileID: 1499448749}
-  - {fileID: 630447514}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &842180376
@@ -15887,6 +15882,70 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 434982, guid: 6812e31ceb91fc04da03973c6b1054cd, type: 3}
   m_PrefabInstance: {fileID: 1450090322}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1454602705
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1454602707}
+  - component: {fileID: 1454602706}
+  m_Layer: 0
+  m_Name: ApiHelper
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1454602706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454602705}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d86635614eca6e4d89a0613ba332551, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lastPayload:
+    agents:
+    - name: rosa
+      x: 0
+      y: 0
+    - name: morado
+      x: 1
+      y: 1
+    - name: verde
+      x: 2
+      y: 2
+    - name: rojo
+      x: 4
+      y: 4
+    - name: azul
+      x: 5
+      y: 5
+    - name: naranja
+      x: 6
+      y: 6
+--- !u!4 &1454602707
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454602705}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -14.35479, y: 0, z: 2.84461}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1454973676
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22952,34 +23011,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7561574523894919330, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
   m_PrefabInstance: {fileID: 6580994555718221787}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2012913669
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 530526984}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a09b070313d11314985a9ffcae409825, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  updateInterval: 2
---- !u!114 &2012913670
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 530526984}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0d86635614eca6e4d89a0613ba332551, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  lastPos:
-    x: 0
-    y: 0
 --- !u!1001 &2016519485
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24971,7 +25002,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1595664256166315964, guid: 5149d2d7c17224b499f4bf2322de9a0a, type: 3}
       propertyPath: m_Name
-      value: RobotNaranja
+      value: naranja
       objectReference: {fileID: 0}
     - target: {fileID: 2120949697788288262, guid: 5149d2d7c17224b499f4bf2322de9a0a, type: 3}
       propertyPath: m_LocalPosition.x
@@ -25130,7 +25161,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8885463346926060055, guid: 96e202456aebd46a1bdd3e7dafea87a2, type: 3}
       propertyPath: m_Name
-      value: RobotMorado
+      value: morado
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -25147,7 +25178,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 6183833823385314424, guid: 6900cc1a510114d55a45f77f01df9bc1, type: 3}
       propertyPath: m_Name
-      value: RobotRosa
+      value: rosa
       objectReference: {fileID: 0}
     - target: {fileID: 6816959678721638082, guid: 6900cc1a510114d55a45f77f01df9bc1, type: 3}
       propertyPath: m_LocalPosition.x
@@ -25204,7 +25235,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 7186561226226674200, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
       propertyPath: m_Name
-      value: RobotVerde
+      value: verde
       objectReference: {fileID: 0}
     - target: {fileID: 7561574523894919330, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
       propertyPath: m_LocalScale.x
@@ -25261,13 +25292,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7186561226226674200, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2012913669}
-    - targetCorrespondingSourceObject: {fileID: 7186561226226674200, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2012913670}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
 --- !u!1001 &7154155535400430735
 PrefabInstance:
@@ -25319,9 +25344,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1991260115328925132, guid: f9818cf3b9a7e405496de1e1f0ae0464, type: 3}
       propertyPath: m_Name
-      value: RobotRojo
+      value: rojo
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 5772353868641325179, guid: f9818cf3b9a7e405496de1e1f0ae0464, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -25336,7 +25362,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 8463038867244904725, guid: 8120c279ab5304c798872ac3ec5316a3, type: 3}
       propertyPath: m_Name
-      value: RobotAzul
+      value: azul
       objectReference: {fileID: 0}
     - target: {fileID: 9095320362023168943, guid: 8120c279ab5304c798872ac3ec5316a3, type: 3}
       propertyPath: m_LocalPosition.x
@@ -25400,3 +25426,4 @@ SceneRoots:
   - {fileID: 130479080}
   - {fileID: 163580250}
   - {fileID: 381721577}
+  - {fileID: 1454602707}

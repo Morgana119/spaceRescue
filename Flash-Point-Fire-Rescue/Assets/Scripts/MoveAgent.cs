@@ -1,24 +1,47 @@
 using UnityEngine; // Necesario para MonoBehaviour y componentes de Unity
 using System.Collections; // Para poder usar corrutinas (IEnumerator)
+using System.Collections.Generic;
 
 public class MoveAgent : MonoBehaviour
 {
-    // Cada cuántos segundos se actualiza la posición del agente
+    [Header("Cad cuantos segundos pedir a Flask")]
     public float updateInterval = 2f;
+
+    [Header("Referencias a los Transforms de cada agente en la escena")]
+    public Transform morado;
+    public Transform rosa;
+    public Transform rojo;
+    public Transform azul;
+    public Transform naranja;
+    public Transform verde;
 
     // Referencia al script ApiHelper (para comunicar con Flask)
     private ApiHelper api;
 
+    // Mapa nombre -> Transform para aplicar posiciones fácilmente
+    private Dictionary<string, Transform> map;
+
+    void Awake()
+    {
+        api = GetComponent<ApiHelper>(); // Debe estar en el mismo GameObject
+
+        map = new Dictionary<string, Transform> {
+            { "morado",  morado  },
+            { "rosa",    rosa    },
+            { "rojo",    rojo    },
+            { "azul",    azul    },
+            { "naranja", naranja },
+            { "verde",   verde   }
+        };
+    }
+
     void Start()
     {
-        // Busca el componente ApiHelper en el mismo GameObject
-        api = GetComponent<ApiHelper>();
-        // Inicia la corrutina que periódicamente actualizará la posición del agente
-        StartCoroutine(UpdateAgentPosition());
+        StartCoroutine(LoopUpdate());
     }
 
     // Corrutina que actualiza continuamente la posición del agente
-    IEnumerator UpdateAgentPosition()
+    /* IEnumerator UpdateAgentPosition()
     {
         while (true) // Bucle infinito mientras el objeto exista
 
@@ -35,6 +58,25 @@ public class MoveAgent : MonoBehaviour
 
             // Espera el intervalo definido antes de la siguiente actualización
             yield return new WaitForSeconds(updateInterval);
+        }
+    }*/
+
+    IEnumerator LoopUpdate(){
+        while(true){
+            yield return StartCoroutine(api.pos_agent());
+
+            // Si se recibio algo, recorre y actualiza cada Transform
+            if (api.lastPayload != null && api.lastPayload.agents != null){
+                foreach (var a in api.lastPayload.agents){
+                    if (map.TryGetValue(a.name, out var t) && t != null){
+                        t.position = new Vector3(a.x, a.y, 0);
+                    } else {
+                        Debug.Log("No hay Transform asignado para el agente: " + a.name);
+                    }
+                }
+
+                yield return new WaitForSeconds(updateInterval);
+            }
         }
     }
 }
