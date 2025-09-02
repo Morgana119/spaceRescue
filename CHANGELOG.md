@@ -2,6 +2,12 @@
 
 # [Ale_flask_conection] (01/09/2025)
 
+### CHANGED
+- Flask sends information of every agent through the JSON
+- Unity accepts through dictionaries the information that the API sent
+
+# [Ale_flask_conection] (01/09/2025)
+
 ### Added
 - Unity scripts for flask connection with comments
 
