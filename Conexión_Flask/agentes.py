@@ -17,7 +17,6 @@ from mesa.datacollection import DataCollector
 from mesa.batchrunner import batch_run
 
 # matplotlib lo usaremos crear una animación de cada uno de los pasos del modelo.
-%matplotlib inline
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -35,131 +34,136 @@ import time
 import datetime
 
 class Cell:
-    def __init_(self, walls, fire = False):
+    def __init__(self,x, y, walls):
         self.x = x
         self.y = y
         
         self.walls = walls
-        self.fire = fire
+        self.fire = False
         self.hasToken = False
-
-
 
 
 class RobotAgent(Agent):
     def __init__(self, model):
-    super().__init__(model)
+        super().__init__(model)
     
     def step(self):
-    print("Agente hizo su step")
+        print("Agente hizo su step")
 
 
 
 
 class ExplorerModel(Model):
-def __init__(self, width = 6, height = 8):
-    super().__init__()
-    self.agentsGrid = MultiGrid(width, height, torus=False)    
-    self.schedule = RandomActivation(self)
-    self.numRobots = 6
-    self.damagedWalls = 0
-    self.savedVictims = 0
-    self.randomStatus = True
-    self.width = width
-    self.height = height
-    self.robots = 1
-    
-    # Se llena el grid de los estados de las paredes
-    gridValues = [
-        ["1001", "1000", "1300", "1001", "1100", "4001", "1000", "1100"],
-        ["0001", "0000", "0110", "0011", "0310", "0011", "0010", "0130"],
-        ["0001", "0300", "1003", "1000", "1000", "1100", "1001", "3100"],
-        ["0011", "0110", "0011", "0030", "0010", "0310", "0013", "0410"],
-        ["1001", "1000", "1000", "3000", "1100", "1001", "1100", "1101"],
-        ["0011", "0010", "0040", "0010", "0310", "0013", "0310", "0113"]
-    ]
-
-    self.grid = [
-            [Cell(x, y, walls=[int(d) for d in gridValues[y][x]])
-             for x in range(self.width)]
-            for y in range(self.height)
+    def __init__(self, width = 8, height = 6):
+        super().__init__()
+        self.agentsGrid = MultiGrid(width, height, torus=False)    
+        self.schedule = RandomActivation(self)
+        self.numRobots = 6
+        self.damagedWalls = 0
+        self.savedVictims = 0
+        self.randomStatus = True
+        self.width = width
+        self.height = height
+        self.robots = 1
+        
+        # Se llena el grid de los estados de las paredes
+        gridValues = [
+            ["1001", "1000", "1300", "1001", "1100", "0001", "1000", "1100"],
+            ["0001", "0000", "0110", "0011", "0310", "0011", "0010", "0130"],
+            ["0000", "0300", "1003", "1000", "1000", "1100", "1001", "3100"],
+            ["0011", "0110", "0011", "0030", "0010", "0310", "0013", "0010"],
+            ["1001", "1000", "1000", "3000", "1100", "1001", "1100", "1101"],
+            ["0011", "0010", "0000", "0010", "0310", "0013", "0310", "0113"]
         ]
 
-    # Se llena el grid de fuego con posiciones iniciales
-    firePositions = [(2,3), (2,3), (4,5), (4,6), (7,6)]
-    for x, y in firePositions:
-        self.fireGrid[y][x].fire = True
-    
+        self.grid = [
+                [Cell(x, y, walls=[int(d) for d in gridValues[y][x]])
+                for x in range(self.width)]
+                for y in range(self.height)
+            ]
 
-    # pongo un agente de prueba
-    i = 0
-    while (i < self.robots):
-        x = self.random.randrange(self.width)
-        y = self.random.randrange(self.height)
-        if self.agentsGrid.is_cell_empty( (x, y) ) and self.fireGrid[x, y] != 1:
-            agent = RobotAgent(self)
-            self.agentsGrid.place_agent(agent, (x, y))
-            self.schedule.add(agent)
-            i += 1
-
-
-
-def step(self):
-    self.schedule.step()
-    x,y = self.RollDice()
-    self.spreadFire(x, y)
-
-def RollDice(self,):
-    x = self.random.randrange(self.width)
-    y = self.random.randrange(self.height)   
-    return x, y
-
-def placeFire(self,  y, x, coordinate): 
-    if coordinate == 0:
-        self.fireGrid[y-1, x] = 1
-    elif coordinate == 1:
-        self.fireGrid[y, x+1] = 1
-    elif coordinate == 2:
-        self.fireGrid[y+1, x] = 1
-    elif coordinate == 3: 
-        self.fireGrid[y, x-1] = 1
-
-def spreadFire(self, x, y):
-    if self.fireGrid[y, x] == 0:
-        self.fireGrid[y][x] = 1
-    else : # explosion
-        for i in range(4):
-
-            # no hay pared ni nada
-            if self.wallsGrid[y, x, i] == 0:
-            self.placeFire(self, y, x, i)
-
-            # hay una pared completa
-            elif self.wallsGrid[y, x, i] == 1:
-            # actualizar los vecinos de la pared dañada
-            self.wallsGrid[y, x, i] = 2
-            self.damagedWalls += 1
-
-            # hay una pared dañada
-            elif self.wallsGrid[y, x, i] == 2:
-            # ya no hay pared
-            # actualizo vecinos que ya no hay pared
-            self.wallsGrid[y, x, i] = 0
-            self.damagedWalls += 1
-            
-            # hay una puerta cerrada
-            elif self.wallsGrid[y, x, i] == 3:
-            # abro la puerta
-            # actualizo vecinos que ya no hay pared
-            self.wallsGrid[y, x, i] = 0
-    
-            
-            
-
+        # Se llena el grid de fuego con posiciones iniciales
+        firePositions = [(1,2), (1,2), (3,4), (3,5), (6,5)]
+        for x, y in firePositions:
+            self.grid[y][x].fire = True
         
 
+        # pongo un agente de prueba
+        i = 0
+        while (i < self.robots):
+            x = self.random.randrange(self.width)
+            y = self.random.randrange(self.height)
+            if self.agentsGrid.is_cell_empty( (x, y) ) and self.grid[y][x].fire == False:
+                agent = RobotAgent(self)
+                self.agentsGrid.place_agent(agent, (x, y))
+                self.schedule.add(agent)
+                i += 1
+
+    def print_grid(self):
+        for y in range(self.height):
+            fila = []
+            for x in range(self.width):
+                walls_str = "".join(map(str, self.grid[y][x].walls))
+                if self.grid[y][x].fire:
+                    walls_str += "F"
+                fila.append(walls_str)
+            print(fila)
+
+
+    def step(self):
+        self.schedule.step()
+        for y in range(self.height):
+            fila = []
+            for x in range(self.width):
+                fila.append(self.grid[y][x].walls)  # lista de muros de la celda
+            print(fila)
+        # x,y = self.RollDice()
+        # self.spreadFire(x, y)
+
+    def RollDice(self,):
+        x = self.random.randrange(self.width)
+        y = self.random.randrange(self.height)   
+        return x, y
     
-    
+    def placeFire(self,  y, x, coordinate): 
+        if coordinate == 0:
+            self.grid[y-1][x].fire = True
+        elif coordinate == 1:
+            self.grid[y][x+1].fire = True
+        elif coordinate == 2:
+            self.grid[y+1][x].fire = True
+        elif coordinate == 3: 
+            self.grid[y][x-1].fire = True
 
+    def spreadFire(self, x, y):
+        if self.grid[y][x].fire == 0:
+            self.grid[y][x].fire = True
+        else : # explosion
+            for i in range(4):
 
+                # no hay pared ni nada
+                if self.grid[y][x].walls[i] == 0:
+                    self.placeFire(self, y, x, i)
 
+                # hay una pared completa
+                elif self.grid[y][x].walls[i] == 1:
+                    # actualizar los vecinos de la pared dañada
+                    self.grid[y][x].walls[i] = 2
+                    self.damagedWalls += 1
+
+                # hay una pared dañada
+                elif self.grid[y][x].walls[i] == 2:
+                    # ya no hay pared
+                    # actualizo vecinos que ya no hay pared
+                    self.grid[y][x].walls[i] = 0
+                    self.damagedWalls += 1
+                
+                # hay una puerta cerrada
+                elif self.grid[y][x].walls[i] == 3:
+                    # abro la puerta
+                    # actualizo vecinos que ya no hay pared
+                    self.grid[y][x].walls[i] = 0
+            
+
+model = ExplorerModel()
+model.print_grid()
