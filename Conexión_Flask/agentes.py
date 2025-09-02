@@ -86,7 +86,7 @@ class ExplorerModel(Model):
             ]
 
         # Se llena el grid de fuego con posiciones iniciales
-        firePositions = [(1,1), (1,2), (3,4), (3,5), (6,5), (1, 4)]
+        firePositions = [(1,1), (1,2), (3,4), (3,5), (6,5)]
         for x, y in firePositions:
             self.grid[y][x].fire = True
         
@@ -164,8 +164,6 @@ class ExplorerModel(Model):
         return (self.damagedWalls == 24)
 
     def spreadFire(self, x, y):
-        x = 1
-        y = 4
         if self.grid[y][x].fire == 0:
             self.grid[y][x].fire = True
         else : # explosion
@@ -198,7 +196,38 @@ class ExplorerModel(Model):
                     self.grid[y][x].walls[i] = 0
             
 
+def gridArray(model):
+    arr = np.zeros((model.height, model.width))
+    for y in range(model.height):
+        for x in range(model.width):
+            if model.grid[y][x].fire:
+                arr[y][x] = 1
+    return arr
+
+allGrids = []
+
 model = ExplorerModel()
-model.print_grid()
-model.step()
-model.print_grid()
+while model.currentStep < 50:
+    model.step()
+    allGrids.append(gridArray(model))
+    model.currentStep += 1 
+
+fig, axs = plt.subplots(figsize=(4, 4))
+axs.set_xticks([])
+axs.set_yticks([])
+
+patch = axs.imshow(allGrids[0], cmap=plt.cm.binary)
+
+def animate(i):
+    patch.set_data(allGrids[i])
+    return [patch]
+
+anim = animation.FuncAnimation(
+    fig,
+    animate,
+    frames=len(allGrids),
+    interval=300,
+    blit=True
+)
+
+plt.show()
