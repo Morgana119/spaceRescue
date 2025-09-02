@@ -8,19 +8,7 @@ class Agent:
         self.x = 0
         self.y = 0
         self.name = name
-
-    def move_forward(self):
-        self.y += 1  # ejemplo: mover hacia adelante en eje Y
-
-    def move_backward(self):
-        self.y -= 1
-
-    def move_left(self):
-        self.x -= 1
-
-    def move_right(self):
-        self.x += 1
-
+        
     # Devuelve el estado actual del agente como un diccionario con sus coordenadas
     def get_state(self):
         return {"name" : self.name, "x": self.x, "y": self.y}

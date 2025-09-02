@@ -9,11 +9,6 @@ public class ApiHelper : MonoBehaviour
     private string url = "http://127.0.0.1:5000"; // Dirección del servidor Flask
     public AgentsPayLoad lastPayload; // Último JSON parseado
 
-   /* void Start(){
-        // Inicia la primera petición GET al servidor para probar conexión
-        StartCoroutine(GetRequest(url));
-    } */
-
     // Corutina que obtiene la posición actualizada del agente desde el servidor
     public IEnumerator pos_agent()
     {
@@ -42,6 +37,12 @@ public class ApiHelper : MonoBehaviour
             }
         }
     }
+}
+
+    /* void Start(){
+        // Inicia la primera petición GET al servidor para probar conexión
+        StartCoroutine(GetRequest(url));
+    } */
 
      // Corrutina para realizar un GET de prueba al servidor
     /*IEnumerator GetRequest(string uri){
@@ -99,4 +100,3 @@ public class ApiHelper : MonoBehaviour
         }
     }
     */
-}

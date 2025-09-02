@@ -15892,6 +15892,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1454602707}
   - component: {fileID: 1454602706}
+  - component: {fileID: 1454602708}
   m_Layer: 0
   m_Name: ApiHelper
   m_TagString: Untagged
@@ -15917,20 +15918,20 @@ MonoBehaviour:
       x: 0
       y: 0
     - name: morado
-      x: 1
-      y: 1
+      x: 7
+      y: 7
     - name: verde
-      x: 2
-      y: 2
+      x: 15
+      y: 15
     - name: rojo
-      x: 4
-      y: 4
+      x: -7
+      y: -7
     - name: azul
-      x: 5
-      y: 5
+      x: 0.15
+      y: 0.15
     - name: naranja
-      x: 6
-      y: 6
+      x: 25
+      y: 25
 --- !u!4 &1454602707
 Transform:
   m_ObjectHideFlags: 0
@@ -15946,6 +15947,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1454602708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454602705}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a09b070313d11314985a9ffcae409825, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  updateInterval: 2
+  morado: {fileID: 1745234710}
+  rosa: {fileID: 1499448749}
+  rojo: {fileID: 630447514}
+  azul: {fileID: 768477042}
+  naranja: {fileID: 2054660910}
+  verde: {fileID: 2012913667}
 --- !u!1001 &1454973676
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -25239,15 +25259,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7561574523894919330, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
       propertyPath: m_LocalScale.x
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7561574523894919330, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
       propertyPath: m_LocalScale.y
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7561574523894919330, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
       propertyPath: m_LocalScale.z
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7561574523894919330, guid: a6fdc2b80196142bd8ba75062556e8d8, type: 3}
       propertyPath: m_LocalPosition.x

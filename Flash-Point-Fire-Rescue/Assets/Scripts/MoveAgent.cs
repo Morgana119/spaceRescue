@@ -25,6 +25,7 @@ public class MoveAgent : MonoBehaviour
     {
         api = GetComponent<ApiHelper>(); // Debe estar en el mismo GameObject
 
+        // Dictionario de objetos 
         map = new Dictionary<string, Transform> {
             { "morado",  morado  },
             { "rosa",    rosa    },
@@ -35,12 +36,33 @@ public class MoveAgent : MonoBehaviour
         };
     }
 
+    // Se llama la corutina
     void Start()
     {
         StartCoroutine(LoopUpdate());
     }
+    
+    // Corrutina que actualiza continuamente la posición de TODOS agente
+    IEnumerator LoopUpdate(){
+        while(true){
+            yield return StartCoroutine(api.pos_agent());
 
-    // Corrutina que actualiza continuamente la posición del agente
+            // Si se recibio algo, recorre y actualiza cada Transform
+            if (api.lastPayload != null && api.lastPayload.agents != null){
+                foreach (var a in api.lastPayload.agents){
+                    if (map.TryGetValue(a.name, out var t) && t != null){
+                        t.position = new Vector3(a.x, a.y, 0);
+                    } else {
+                        Debug.Log("No hay Transform asignado para el agente: " + a.name);
+                    }
+                }
+
+                yield return new WaitForSeconds(updateInterval);
+            }
+        }
+    }
+
+    // Corrutina que actualiza continuamente la posición de UN agente
     /* IEnumerator UpdateAgentPosition()
     {
         while (true) // Bucle infinito mientras el objeto exista
@@ -61,22 +83,4 @@ public class MoveAgent : MonoBehaviour
         }
     }*/
 
-    IEnumerator LoopUpdate(){
-        while(true){
-            yield return StartCoroutine(api.pos_agent());
-
-            // Si se recibio algo, recorre y actualiza cada Transform
-            if (api.lastPayload != null && api.lastPayload.agents != null){
-                foreach (var a in api.lastPayload.agents){
-                    if (map.TryGetValue(a.name, out var t) && t != null){
-                        t.position = new Vector3(a.x, a.y, 0);
-                    } else {
-                        Debug.Log("No hay Transform asignado para el agente: " + a.name);
-                    }
-                }
-
-                yield return new WaitForSeconds(updateInterval);
-            }
-        }
-    }
 }

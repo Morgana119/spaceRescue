@@ -26,24 +26,6 @@ def pos_agent():
     # Devuelve la nueva posición en formato JSON
     return jsonify({"x": agent.x, "y": agent.y})
 
-# Ruta para mover al agente según una acción enviada desde Unity
-# Método: POST
-@agent_bp.route("/agent/move", methods=["POST"])
-def move_agent():
-    # Recibimos los datos enviados en formato JSON
-    data = request.get_json()
-    action = data.get("action")  # Extraemos la acción
-
-    # Ejecutamos la acción según lo que llegue
-    if action == "forward":
-        agent.move_forward()
-    elif action == "left":
-        agent.move_left()
-    elif action == "right":
-        agent.move_right()
-
-    # Regresamos el estado actualizado del agente
-    return jsonify(agent.get_state())
 '''
 
 @agent_bp.route("/move/agents", methods=["GET"])

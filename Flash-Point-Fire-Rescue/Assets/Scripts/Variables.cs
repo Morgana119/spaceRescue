@@ -13,9 +13,9 @@ public class AgentsPayLoad{
     public AgentPos[] agents; 
 }
 
-[System.Serializable]
+/*[System.Serializable]
 // Clase que representa los datos de una acción enviada al servidor para el POST
 public class ActionData
 {
     public string action;
-}
+}*/
