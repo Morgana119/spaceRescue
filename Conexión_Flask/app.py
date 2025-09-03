@@ -12,11 +12,11 @@ app.register_blueprint(agent_bp)
 # Ruta principal de prueba
 @app.route("/")
 def index():
-    return jsonify("Ya funciona")
+    return jsonify("API running")
 
 # Punto de entrada de la aplicación
 if __name__ == "__main__":
     # Ejecutamos el servidor Flask en el puerto por defecto (5000)
     # Se accede con http://127.0.0.1:5000
-    app.run()
+    app.run(debug=True)
 

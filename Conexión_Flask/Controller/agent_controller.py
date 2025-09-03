@@ -1,11 +1,13 @@
 # Importamos las librerías necesarias
 from flask import Blueprint, jsonify, request
-from Model.agent import agent # Importamos la instancia global del agente
+from Model.agent import Model  # diccionario con todos los agentes
+
 
 # Definimos un "Blueprint" llamado agent_bp
 # Un Blueprint en Flask sirve para organizar las rutas de manera modular
 agent_bp = Blueprint("agent_bp", __name__)
 
+'''
 # ------------------- RUTAS -------------------
 
 # Ruta para consultar el estado actual del agente
@@ -24,21 +26,37 @@ def pos_agent():
     # Devuelve la nueva posición en formato JSON
     return jsonify({"x": agent.x, "y": agent.y})
 
-# Ruta para mover al agente según una acción enviada desde Unity
-# Método: POST
-@agent_bp.route("/agent/move", methods=["POST"])
-def move_agent():
-    # Recibimos los datos enviados en formato JSON
-    data = request.get_json()
-    action = data.get("action")  # Extraemos la acción
+'''
 
-    # Ejecutamos la acción según lo que llegue
-    if action == "forward":
-        agent.move_forward()
-    elif action == "left":
-        agent.move_left()
-    elif action == "right":
-        agent.move_right()
+# Ruta para mover todos los agentes a la vez
+'''
+@agent_bp.route("/move/agents", methods=["GET"])
+def all_agents_pos():
+    # por cada agente se llama el metodo get_next_position()
+    for ag in agents.values():
+        ag.get_next_position()
 
-    # Regresamos el estado actualizado del agente
-    return jsonify(agent.get_state())
+    # Se agrega a un diccionario el estado actual que tiene   
+    payload = {'agents' : [ag.get_state() for ag in agents.values()]}
+    # se manda en formato JSON
+    return jsonify(payload)
+'''
+
+# Agent names
+COLORS = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+
+# Se inicializa el modelo con esos agentes
+# Cada agente recibe un nombre y una posición inicial aleatoria
+model = Model(COLORS)
+
+# ------------------- RUTA FLASK -------------------
+
+# Ruta para mover agentes: "/move/agents"
+# Método: GET
+@agent_bp.route("/move/agents", methods=["GET"])
+def move_agents_step():
+    # Ejecuta un paso de la simulación
+    # En este paso SOLO se mueve el agente cuyo turno corresponde
+    model.step()
+    # Devuelve en formato JSON las posiciones actualizadas de todos los agentes
+    return jsonify(model.get_payload())
