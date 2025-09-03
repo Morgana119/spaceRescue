@@ -45,10 +45,18 @@ def all_agents_pos():
 # Agent names
 COLORS = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 
-# Initialize model
+# Se inicializa el modelo con esos agentes
+# Cada agente recibe un nombre y una posición inicial aleatoria
 model = Model(COLORS)
 
+# ------------------- RUTA FLASK -------------------
+
+# Ruta para mover agentes: "/move/agents"
+# Método: GET
 @agent_bp.route("/move/agents", methods=["GET"])
 def move_agents_step():
-    model.step()  # Move only one agent per call
+    # Ejecuta un paso de la simulación
+    # En este paso SOLO se mueve el agente cuyo turno corresponde
+    model.step()
+    # Devuelve en formato JSON las posiciones actualizadas de todos los agentes
     return jsonify(model.get_payload())
