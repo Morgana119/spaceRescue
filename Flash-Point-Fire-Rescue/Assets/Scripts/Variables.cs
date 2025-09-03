@@ -6,6 +6,7 @@ public class AgentPos
     public string name; // nombre del agente para identificarlo
     public float x; // posicion en x
     public float y; // posicion en y
+    public float z; // posicion en z
 }
 
 [System.Serializable]

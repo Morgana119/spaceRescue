@@ -1,6 +1,6 @@
 # Importamos las librerías necesarias
 from flask import Blueprint, jsonify, request
-from Model.agent import agents  # diccionario con todos los agentes
+from Model.agent import Model  # diccionario con todos los agentes
 
 
 # Definimos un "Blueprint" llamado agent_bp
@@ -29,6 +29,7 @@ def pos_agent():
 '''
 
 # Ruta para mover todos los agentes a la vez
+'''
 @agent_bp.route("/move/agents", methods=["GET"])
 def all_agents_pos():
     # por cada agente se llama el metodo get_next_position()
@@ -39,3 +40,15 @@ def all_agents_pos():
     payload = {'agents' : [ag.get_state() for ag in agents.values()]}
     # se manda en formato JSON
     return jsonify(payload)
+'''
+
+# Agent names
+COLORS = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+
+# Initialize model
+model = Model(COLORS)
+
+@agent_bp.route("/move/agents", methods=["GET"])
+def move_agents_step():
+    model.step()  # Move only one agent per call
+    return jsonify(model.get_payload())

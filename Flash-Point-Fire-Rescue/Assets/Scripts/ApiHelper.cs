@@ -37,7 +37,7 @@ public class ApiHelper : MonoBehaviour
                 lastPayload = JsonUtility.FromJson<AgentsPayLoad>(jsonResponse);
 
                 // Muestra en consola la posición recibida desde Flask
-                foreach (var a in lastPayload.agents) Debug.Log($"{a.name}: ({a.x},{a.y})");
+                foreach (var a in lastPayload.agents) Debug.Log($"{a.name}: ({a.x},{a.y}, {a.z})");
             }
         }
     }

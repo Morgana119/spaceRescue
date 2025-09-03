@@ -55,12 +55,12 @@ public class MoveAgent : MonoBehaviour
                 // Recorre el arreglo creado en la clase del archivo Varibales AgentsPayLoad
                 foreach (var a in api.lastPayload.agents){
                     if (map.TryGetValue(a.name, out var t) && t != null){
-                        t.position = new Vector3(a.x, a.y, 0);
+                        t.position = new Vector3(a.x, 0, a.z);
                     } else {
                         Debug.Log("No hay Transform asignado para el agente: " + a.name);
                     }
                 }
-                
+
                 // espera el tiempo del intervalo
                 yield return new WaitForSeconds(updateInterval);
             }
