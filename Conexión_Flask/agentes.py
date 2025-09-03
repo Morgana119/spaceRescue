@@ -42,19 +42,49 @@ class Cell:
         self.fire = False
         self.hasToken = False
 
-
 class RobotAgent(Agent):
     def __init__(self, model):
         super().__init__(model)
+        self.idRobot = self.unique_id    # Mesa ya lo define 
+        self.rolRobot = 0                # 0 -> apagaFuegos | 1 -> salvaVidas
+        self.actionPoints = 4
+        self.partner = None
+        self.positionX = 0
+        self.positionY = 0
+        self.savedVictims = 0
+        self.health = 0
+
+    def actions(self):
+        actions = ["move","openClosedDoor","stopFire","breakWall","revealPOI","meetPartner", ]
+        for i in actions:
+            if actions[i] == False:
+                self.actions(self)
+            break
+
+    # def move(self):
+
+
+    # def openClosedDoor(self):
     
-    def step(self):
-        print("Agente hizo su step")
+    # def stopFire(self):
+    
+    # def breakWall(self):
 
+    # def revealPOI(self):
 
+    # def meetPartner(self):
+
+    # def savedVictim(self):
+
+    # def damaged(self):
+
+    # def step(self):
+    #     print("Agente hizo su step")
+    #     print(f"Soy {self.idRobot} y mi pareja es {self.partner}")
 
 
 class ExplorerModel(Model):
-    def __init__(self, width = 8, height = 6):
+    def __init__(self, width = 8, height = 6, numRobots = 6):
         super().__init__()
         self.agentsGrid = MultiGrid(width, height, torus=False)    
         self.schedule = RandomActivation(self)
@@ -64,8 +94,22 @@ class ExplorerModel(Model):
         self.randomStatus = True
         self.width = width
         self.height = height
-        self.robots = 1
-        
+        self.numRobots = numRobots
+
+        # Definir parejas
+        self.agents_list = []
+        for i in range(0, self.numRobots, 2):
+            a1 = RobotAgent(self)
+            a2 = RobotAgent(self)
+
+            # Empareja por id
+            a1.partner = a2.unique_id
+            a2.partner = a1.unique_id
+
+            self.schedule.add(a1)
+            self.schedule.add(a2)
+            self.agents_list.extend([a1, a2])
+
         # Se llena el grid de los estados de las paredes
         gridValues = [
             ["1001", "1000", "1300", "1001", "1100", "0001", "1000", "1100"],
@@ -86,18 +130,16 @@ class ExplorerModel(Model):
         firePositions = [(1,2), (1,2), (3,4), (3,5), (6,5)]
         for x, y in firePositions:
             self.grid[y][x].fire = True
-        
 
-        # pongo un agente de prueba
-        i = 0
-        while (i < self.robots):
-            x = self.random.randrange(self.width)
-            y = self.random.randrange(self.height)
-            if self.agentsGrid.is_cell_empty( (x, y) ) and self.grid[y][x].fire == False:
-                agent = RobotAgent(self)
-                self.agentsGrid.place_agent(agent, (x, y))
-                self.schedule.add(agent)
-                i += 1
+        # colocar agentes
+        for agent in self.agents_list:
+            while (i < self.numRobots):
+                x = self.random.randrange(self.width)
+                y = self.random.randrange(self.height)
+                if self.agentsGrid.is_cell_empty( (x, y) ) and self.grid[y][x].fire == False:
+                    agent = RobotAgent(self)
+                    self.agentsGrid.place_agent(agent, (x, y))
+                    break
 
     def print_grid(self):
         for y in range(self.height):
@@ -108,7 +150,6 @@ class ExplorerModel(Model):
                     walls_str += "F"
                 fila.append(walls_str)
             print(fila)
-
 
     def step(self):
         self.schedule.step()
@@ -143,7 +184,7 @@ class ExplorerModel(Model):
 
                 # no hay pared ni nada
                 if self.grid[y][x].walls[i] == 0:
-                    self.placeFire(self, y, x, i)
+                    self.placeFire(y, x, i)
 
                 # hay una pared completa
                 elif self.grid[y][x].walls[i] == 1:
@@ -165,5 +206,6 @@ class ExplorerModel(Model):
                     self.grid[y][x].walls[i] = 0
             
 
-model = ExplorerModel()
-model.print_grid()
+model = ExplorerModel(8,6,6)
+# model.print_grid()
+model.step()
