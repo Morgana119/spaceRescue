@@ -43,7 +43,7 @@ class Cell:
         self.hasToken = False
 
 class RobotAgent(Agent):
-    def __init__(self, model):
+    def __init__(self, model, agentId):
         super().__init__(model)
         self.idRobot = self.unique_id    # Mesa ya lo define 
         self.rolRobot = 0                # 0 -> apagaFuegos | 1 -> salvaVidas
@@ -94,6 +94,8 @@ class ExplorerModel(Model):
         self.randomStatus = True
         self.width = width
         self.height = height
+        self.agentIndex = 0
+        self.currentStep = 0 
         self.numRobots = numRobots
 
         # Definir parejas
@@ -127,7 +129,7 @@ class ExplorerModel(Model):
             ]
 
         # Se llena el grid de fuego con posiciones iniciales
-        firePositions = [(1,2), (1,2), (3,4), (3,5), (6,5)]
+        firePositions = [(1,1), (1,2), (3,4), (3,5), (6,5)]
         for x, y in firePositions:
             self.grid[y][x].fire = True
 
@@ -152,29 +154,54 @@ class ExplorerModel(Model):
             print(fila)
 
     def step(self):
-        self.schedule.step()
-        for y in range(self.height):
-            fila = []
-            for x in range(self.width):
-                fila.append(self.grid[y][x].walls)  # lista de muros de la celda
-            print(fila)
-        # x,y = self.RollDice()
-        # self.spreadFire(x, y)
+        agentIndex = self.currentStep % self.robots
+        agent = self.schedule.agents[agentIndex]
+        agent.step()
+
+        x,y = self.RollDice()
+        self.spreadFire(x, y)
 
     def RollDice(self,):
         x = self.random.randrange(self.width)
         y = self.random.randrange(self.height)   
         return x, y
     
-    def placeFire(self,  y, x, coordinate): 
-        if coordinate == 0:
-            self.grid[y-1][x].fire = True
-        elif coordinate == 1:
-            self.grid[y][x+1].fire = True
-        elif coordinate == 2:
-            self.grid[y+1][x].fire = True
-        elif coordinate == 3: 
-            self.grid[y][x-1].fire = True
+    def placeFire(self, y, x, coordinate):
+        moves = {
+            0: (-1, 0),
+            1: (0, 1),
+            2: (1, 0),
+            3: (0, -1)
+        }
+        dy, dx = moves[coordinate]
+        ny, nx = y + dy, x + dx
+
+        # sigue buscando hasta que encuentra un lugar sin fuego
+        while 0 <= ny < len(self.grid) and 0 <= nx < len(self.grid[0]):
+            if not self.grid[ny][nx].fire:
+                self.grid[ny][nx].fire = True
+                break
+
+            ny += dy
+            nx += dx
+
+
+    def updateNeighbors(self, x, y, coordinate, newStatus):
+        update = (coordinate + 2) % 4
+
+        moves = {
+            0: (-1, 0),
+            1: (0, 1),
+            2: (1, 0),
+            3: (0, -1)
+        }
+        dy, dx = moves[coordinate]
+        ny, nx = y + dy, x + dx 
+        if 0 <= ny < len(self.grid) and 0 <= nx < len(self.grid[0]):
+            self.grid[ny][nx].walls[update] = newStatus
+    
+    def IsCollapsed(self):
+        return (self.damagedWalls == 24)
 
     def spreadFire(self, x, y):
         if self.grid[y][x].fire == 0:
@@ -189,6 +216,7 @@ class ExplorerModel(Model):
                 # hay una pared completa
                 elif self.grid[y][x].walls[i] == 1:
                     # actualizar los vecinos de la pared dañada
+                    self.updateNeighbors(x, y, i, 2)
                     self.grid[y][x].walls[i] = 2
                     self.damagedWalls += 1
 
@@ -196,6 +224,7 @@ class ExplorerModel(Model):
                 elif self.grid[y][x].walls[i] == 2:
                     # ya no hay pared
                     # actualizo vecinos que ya no hay pared
+                    self.updateNeighbors(x, y, i, 0)
                     self.grid[y][x].walls[i] = 0
                     self.damagedWalls += 1
                 
@@ -203,9 +232,42 @@ class ExplorerModel(Model):
                 elif self.grid[y][x].walls[i] == 3:
                     # abro la puerta
                     # actualizo vecinos que ya no hay pared
+                    self.updateNeighbors(x, y, i, 0)
                     self.grid[y][x].walls[i] = 0
             
 
-model = ExplorerModel(8,6,6)
-# model.print_grid()
-model.step()
+def gridArray(model):
+    arr = np.zeros((model.height, model.width))
+    for y in range(model.height):
+        for x in range(model.width):
+            if model.grid[y][x].fire:
+                arr[y][x] = 1
+    return arr
+
+allGrids = []
+
+model = ExplorerModel()
+while model.currentStep < 50:
+    model.step()
+    allGrids.append(gridArray(model))
+    model.currentStep += 1 
+
+fig, axs = plt.subplots(figsize=(4, 4))
+axs.set_xticks([])
+axs.set_yticks([])
+
+patch = axs.imshow(allGrids[0], cmap=plt.cm.binary)
+
+def animate(i):
+    patch.set_data(allGrids[i])
+    return [patch]
+
+anim = animation.FuncAnimation(
+    fig,
+    animate,
+    frames=len(allGrids),
+    interval=300,
+    blit=True
+)
+
+plt.show()
