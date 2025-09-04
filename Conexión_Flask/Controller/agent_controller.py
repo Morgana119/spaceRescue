@@ -65,5 +65,5 @@ explorer_model = ExplorerModel(agent_names)
 
 @agent_bp.route("/state", methods=["GET"])
 def get_state():
-    # explorer_model.step()  
+    explorer_model.step()  
     return jsonify(explorer_model.get_full_state())

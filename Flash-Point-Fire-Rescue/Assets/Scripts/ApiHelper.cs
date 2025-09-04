@@ -43,6 +43,7 @@ public class ApiHelper : MonoBehaviour
     }
 
     public FullStatePayload lastFullState;
+    public GridFireManager gridFireManager;
 
    public IEnumerator GetFullState()
     {
