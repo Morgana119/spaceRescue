@@ -66,6 +66,18 @@ public class MoveAgent : MonoBehaviour
             }
         }
     }
+    
+    public void UpdateAgents(AgentPos[] agents)
+    {
+        foreach (var a in agents)
+        {
+            if (map.TryGetValue(a.name, out var t) && t != null)
+            {
+                t.position = new Vector3(a.x, 0, a.z);
+            }
+        }
+    }
+
 
     // Corrutina que actualiza continuamente la posición de UN agente
     /* IEnumerator UpdateAgentPosition()

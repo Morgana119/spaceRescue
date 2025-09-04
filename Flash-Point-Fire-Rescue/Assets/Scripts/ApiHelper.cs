@@ -41,6 +41,38 @@ public class ApiHelper : MonoBehaviour
             }
         }
     }
+
+    public FullStatePayload lastFullState;
+
+   public IEnumerator GetFullState()
+    {
+        string web_url = url + "/state";
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(web_url))
+        {
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
+                webRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError("Error: " + webRequest.error);
+            }
+            else
+            {
+                string jsonResponse = webRequest.downloadHandler.text.Trim();
+
+                // Parsear lista de fuegos
+                FireList fireList = JsonUtility.FromJson<FireList>(jsonResponse);
+                foreach (var fire in fireList.fires)
+                {
+                    gridFireManager.SetFire(fire.x, fire.y, true);
+                }
+
+                // Guardar el estado completo
+                lastFullState = JsonUtility.FromJson<FullStatePayload>(jsonResponse);
+            }
+        }
+    }
+
 }
 
     /* void Start(){

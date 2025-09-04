@@ -1,4 +1,6 @@
-// Esta etiqueta indica que la clase puede ser convertida a JSON y viceversa
+using System.Collections.Generic;
+
+// Esta etiqueta indica que la clase puede ser convertida a JSON y viceversa}
 [System.Serializable]  
 // Clase que representa las variables de posición del agente
 public class AgentPos
@@ -21,3 +23,25 @@ public class ActionData
 {
     public string action;
 }*/
+
+[System.Serializable]
+public class Fire {
+    public int x;
+    public int y;
+}
+
+[System.Serializable]
+public class FiresPayload {
+    public Fire[] fires;
+}
+
+[System.Serializable]
+public class FullStatePayload {
+    public AgentPos[] agents;
+    public Fire[] fires;
+}
+
+public class FireList
+{
+    public List<Fire> fires;
+}
