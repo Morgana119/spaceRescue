@@ -7,6 +7,17 @@
 - Script for Fire Grid Manager on Unity
 - Route for full State of Grid
 
+# [fa/unity] (03/09/2025)
+
+### Changed
+- breakWall method to take into account that it must be damages 2 time in order
+for it to be destroyed
+
+# [fa/agentes] (02/09/2025)
+
+### Added
+- Add agent class and methods
+
 # [Ale_flask_conection] (01/09/2025)
 
 ### CHANGED
