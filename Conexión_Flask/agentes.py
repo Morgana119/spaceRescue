@@ -41,6 +41,7 @@ class Cell:
         self.walls = walls
         self.fire = False
         self.hasToken = False
+        self.smoke = False
 
 class RobotAgent(Agent):
     def __init__(self, model):
@@ -177,21 +178,40 @@ class RobotAgent(Agent):
 
     # Romper pared completa/dañada (1/2) -> 0 y vecino 0
     def breakWall(self, d):
+        # 0:N, 1:E, 2:S, 3:O  (coincide con índices de walls)
+        DIR_NAMES = {0: "Norte", 1: "Este", 2: "Sur", 3: "Oeste"}
+
         x, y, nx, ny = self.neighborCoords(d)
-        if not self.insideGrid(ny, nx): 
-            return False
-        wall = self.model.grid[y][x].walls[d]
-        if wall not in (1, 2): 
-            return False
-        if self.actionPoints < 2: 
+        if not self.insideGrid(ny, nx):
             return False
 
-        self.model.updateNeighbors(x, y, d, 0)
-        self.model.grid[y][x].walls[d] = 0
-        self.model.damagedWalls += 1
-        self.actionPoints -= 2
-        print(f"[Agente {self.idRobot}] BREAK_WALL dir={d}, AP={self.actionPoints}")
-        return True
+        wall = self.model.grid[y][x].walls[d]
+        if wall not in (1, 2):  # solo se puede sobre pared completa (1) o dañada (2)
+            return False
+        if self.actionPoints < 2:
+            return False
+
+        # Caso 1: 1 -> 2 (debilitar, aún no se puede pasar)
+        if wall == 1:
+            # actualizar ambos lados a "dañada" (2)
+            self.model.updateNeighbors(x, y, d, 2)
+            self.model.grid[y][x].walls[d] = 2
+            self.model.damagedWalls += 1
+            self.actionPoints -= 2
+            print(f"[Agente {self.idRobot}] BREAK_WALL (debilitar 1→2) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
+            return True
+
+        # Caso 2: 2 -> 0 (romper del todo, ya se puede pasar)
+        if wall == 2:
+            # actualizar ambos lados a "abierta" (0)
+            self.model.updateNeighbors(x, y, d, 0)
+            self.model.grid[y][x].walls[d] = 0
+            self.model.damagedWalls += 1
+            self.actionPoints -= 2
+            print(f"[Agente {self.idRobot}] BREAK_WALL (romper 2→0) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
+            return True
+            
+        return False
     
     def actions(self):
         while self.actionPoints > 0:
@@ -254,9 +274,14 @@ class ExplorerModel(Model):
         self.numRobots = numRobots
 
         # Se llena el grid de los estados de las paredes
+        # 0 -> ausencia
+        # 1 -> pared completa
+        # 2 -> pared dañada
+        # 3 -> puerta cerrada
+        # arriba | derecha | abajo | izquierda
         gridValues = [
-            ["1001", "1000", "1300", "1001", "1100", "0001", "1000", "1100"],
-            ["0001", "0000", "0110", "0011", "0310", "0011", "0010", "0130"],
+            ["1001", "1000", "1300", "1003", "1100", "0001", "1000", "1100"],
+            ["0001", "0000", "0110", "0011", "0310", "0013", "0010", "0130"],
             ["0000", "0300", "1003", "1000", "1000", "1100", "1001", "3100"],
             ["0011", "0110", "0011", "0030", "0010", "0310", "0013", "0010"],
             ["1001", "1000", "1000", "3000", "1100", "1001", "1100", "1101"],
@@ -273,6 +298,7 @@ class ExplorerModel(Model):
         firePositions = [(1,1), (1,2), (3,4), (3,5), (6,5)]
         for x, y in firePositions:
             self.grid[y][x].fire = True
+        print(f"[INIT] Fuego inicial en: {firePositions}")
 
         # Crear agentes
         self.agents_list = []
@@ -290,6 +316,7 @@ class ExplorerModel(Model):
                 if self.agentsGrid.is_cell_empty( (x, y) ) and self.grid[y][x].fire == False:
                     self.agentsGrid.place_agent(agent, (x, y))
                     agent.positionX, agent.positionY = x, y
+                    print(f"[INIT] Agente {agent.idRobot} colocado en {(x, y)}")
                     break
 
     # Definir parejas -> model.assignPairs
@@ -317,6 +344,7 @@ class ExplorerModel(Model):
 
         # agente del turno actual
         agent = self.agents_list[self.current_turn]
+        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
         agent.step()  # este agente gasta hasta 4 PA en su propio step()
 
         # avanza el turno de forma cíclica
@@ -324,6 +352,7 @@ class ExplorerModel(Model):
 
         # dinámica de fuego
         x, y = self.RollDice()
+        print(f"[FIRE] Tirada de fuego desde {(x, y)}")
         self.spreadFire(x, y)
 
     def RollDice(self,):
@@ -345,6 +374,7 @@ class ExplorerModel(Model):
         while 0 <= ny < len(self.grid) and 0 <= nx < len(self.grid[0]):
             if not self.grid[ny][nx].fire:
                 self.grid[ny][nx].fire = True
+                print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dirección {coordinate} desde {(x, y)}")
                 break
 
             ny += dy
@@ -370,11 +400,15 @@ class ExplorerModel(Model):
     def spreadFire(self, x, y):
         if self.grid[y][x].fire == 0:
             self.grid[y][x].fire = True
+            print(f"[FIRE] Encendido directo en {(x, y)} (no había fuego)")
+
         else : # explosion
+            print(f"[FIRE] ¡Explosión! en {(x, y)}")
             for i in range(4):
 
                 # no hay pared ni nada
                 if self.grid[y][x].walls[i] == 0:
+                    print(f"[FIRE|EXPLODE] Paso libre hacia dir {i} → propagar")
                     self.placeFire(y, x, i)
 
                 # hay una pared completa
@@ -383,6 +417,7 @@ class ExplorerModel(Model):
                     self.updateNeighbors(x, y, i, 2)
                     self.grid[y][x].walls[i] = 2
                     self.damagedWalls += 1
+                    print(f"[FIRE|EXPLODE] Pared completa dañada (1→2) en {(x, y)} dir {i}")
 
                 # hay una pared dañada
                 elif self.grid[y][x].walls[i] == 2:
@@ -391,14 +426,15 @@ class ExplorerModel(Model):
                     self.updateNeighbors(x, y, i, 0)
                     self.grid[y][x].walls[i] = 0
                     self.damagedWalls += 1
-                
+                    print(f"[FIRE|EXPLODE] Pared dañada colapsa (2→0) en {(x, y)} dir {i}")
+
                 # hay una puerta cerrada
                 elif self.grid[y][x].walls[i] == 3:
                     # abro la puerta
                     # actualizo vecinos que ya no hay pared
                     self.updateNeighbors(x, y, i, 0)
                     self.grid[y][x].walls[i] = 0
-            
+                    print(f"[FIRE|EXPLODE] Puerta se abre (3→0) en {(x, y)} dir {i}")
 
 def gridArray(model):
     arr = np.zeros((model.height, model.width))

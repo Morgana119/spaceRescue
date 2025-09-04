@@ -1,5 +1,16 @@
 # Changelog
 
+# [fa/unity] (03/09/2025)
+
+### Changed
+- breakWall method to take into account that it must be damages 2 time in order
+for it to be destroyed
+
+# [fa/agentes] (02/09/2025)
+
+### Added
+- Add agent class and methods
+
 # [fa/unity] (28/08/2025)
 
 ### Added
