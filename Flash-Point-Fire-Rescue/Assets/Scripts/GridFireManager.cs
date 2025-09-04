@@ -5,13 +5,14 @@ using System.Collections.Generic;
 public class GridFireManager : MonoBehaviour
 {
     public int width = 10;
-    public int height = 10;
+    public int height = 8;
     public GameObject firePrefab;
 
     private GameObject[,] grid;
 
     // Lista de posiciones iniciales con fuego
     public List<Vector2Int> initialFires = new List<Vector2Int> {
+        new Vector2Int(0, 0),
         new Vector2Int(2,2),
         new Vector2Int(2,3),
         new Vector2Int(3,2),
