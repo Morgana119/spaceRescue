@@ -9,19 +9,18 @@ public class GridFireManager : MonoBehaviour
     public GameObject firePrefab;
 
     private GameObject[,] grid;
-
+    // (2, 2), (2, 3), (3, 2), (4, 3), (3, 3), (5, 3), (4, 4), (6, 5), (7, 5), (6, 6)
     // Lista de posiciones iniciales con fuego
     public List<Vector2Int> initialFires = new List<Vector2Int> {
-        new Vector2Int(0, 0),
         new Vector2Int(2,2),
         new Vector2Int(2,3),
         new Vector2Int(3,2),
+        new Vector2Int(4,3),
         new Vector2Int(3,3),
-        new Vector2Int(3,4),
-        new Vector2Int(3,5),
+        new Vector2Int(5,3),
         new Vector2Int(4,4),
-        new Vector2Int(5,6),
-        new Vector2Int(5,7),
+        new Vector2Int(6,5),
+        new Vector2Int(7,5),
         new Vector2Int(6,6)
     };
     public List<Vector2Int> newFires = new List<Vector2Int>();

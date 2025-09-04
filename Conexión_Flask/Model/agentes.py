@@ -281,43 +281,43 @@ def gridArray(model):
                 arr[y][x] = 2
     return arr
 
-allGrids = []
-agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
-model = ExplorerModel(agent_names)
-model.print_grid()
-print("----------------------")
-while model.currentStep < 1:
-    model.step()
-    allGrids.append(gridArray(model))
-    model.currentStep += 1 
-model.print_grid()
-fig, axs = plt.subplots(figsize=(5, 5))
-axs.set_xticks([])
-axs.set_yticks([])
+# allGrids = []
+# agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+# model = ExplorerModel(agent_names)
+# model.print_grid()
+# print("----------------------")
+# while model.currentStep < 1:
+#     model.step()
+#     allGrids.append(gridArray(model))
+#     model.currentStep += 1 
+# model.print_grid()
+# fig, axs = plt.subplots(figsize=(5, 5))
+# axs.set_xticks([])
+# axs.set_yticks([])
 
-# Definir colores: 0=blanco, 1=rojo (fuego), 2=gris (humo)
-cmap = ListedColormap(['white', 'red', 'gray'])
+# # Definir colores: 0=blanco, 1=rojo (fuego), 2=gris (humo)
+# cmap = ListedColormap(['white', 'red', 'gray'])
 
-# Margen visual entre celdas
-margin = 0.5
-height, width = allGrids[0].shape
-patch = axs.imshow(
-    allGrids[0],
-    cmap=cmap,
-    extent=[-margin, width-1+margin, -margin, height-1+margin],
-    interpolation='none'
-)
+# # Margen visual entre celdas
+# margin = 0.5
+# height, width = allGrids[0].shape
+# patch = axs.imshow(
+#     allGrids[0],
+#     cmap=cmap,
+#     extent=[-margin, width-1+margin, -margin, height-1+margin],
+#     interpolation='none'
+# )
 
-def animate(i):
-    patch.set_data(allGrids[i])
-    return [patch]
+# def animate(i):
+#     patch.set_data(allGrids[i])
+#     return [patch]
 
-anim = animation.FuncAnimation(
-    fig,
-    animate,
-    frames=len(allGrids),
-    interval=300,
-    blit=True
-)
+# anim = animation.FuncAnimation(
+#     fig,
+#     animate,
+#     frames=len(allGrids),
+#     interval=300,
+#     blit=True
+# )
 
-plt.show()
+# plt.show()
