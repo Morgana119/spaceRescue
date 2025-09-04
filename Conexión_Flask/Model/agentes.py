@@ -20,6 +20,7 @@ from mesa.batchrunner import batch_run
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib.colors import ListedColormap
 plt.rcParams["animation.html"] = "jshtml"
 matplotlib.rcParams['animation.embed_limit'] = 2**128
 
@@ -32,6 +33,7 @@ sns.set()
 # Definimos otros paquetes que vamos a usar para medir el tiempo de ejecución de nuestro algoritmo.
 import time
 import datetime
+import random
 
 class Cell:
     def __init__(self, x, y, walls):
@@ -258,9 +260,8 @@ class RobotAgent(Agent):
         self.actionPoints = 4
         self.actions()
 
-
 class ExplorerModel(Model):
-    def __init__(self, width = 8, height = 6, numRobots = 6):
+    def __init__(self,agent_names, width = 10, height = 8, numRobots = 6):
         super().__init__()
         self.agentsGrid = MultiGrid(width, height, torus=False)    
         self.schedule = RandomActivation(self)
@@ -272,7 +273,11 @@ class ExplorerModel(Model):
         self.agentIndex = 0
         self.currentStep = 0 
         self.numRobots = numRobots
-
+        self.newFire = []
+        self.newSmoke = []
+        self.current_turn = 0
+        self.myAgents = []
+        
         # Se llena el grid de los estados de las paredes
         # 0 -> ausencia
         # 1 -> pared completa
@@ -280,12 +285,14 @@ class ExplorerModel(Model):
         # 3 -> puerta cerrada
         # arriba | derecha | abajo | izquierda
         gridValues = [
-            ["1001", "1000", "1300", "1003", "1100", "0001", "1000", "1100"],
-            ["0001", "0000", "0110", "0011", "0310", "0013", "0010", "0130"],
-            ["0000", "0300", "1003", "1000", "1000", "1100", "1001", "3100"],
-            ["0011", "0110", "0011", "0030", "0010", "0310", "0013", "0010"],
-            ["1001", "1000", "1000", "3000", "1100", "1001", "1100", "1101"],
-            ["0011", "0010", "0000", "0010", "0310", "0013", "0310", "0113"]
+            ["0000","0010","0010","0010","0010","0010","0010","0010","0010","0000"],
+            ["0100","1001","1000","1300","1003","1100","0001","1000","1100","0001"],
+            ["0100","0001","0000","0110","0011","0310","0013","0010","0130","0001"],
+            ["0100","0000","0300","1003","1000","1000","1100","1001","3100","0001"],
+            ["0100","0011","0110","0011","0030","0010","0310","0013","0010","0001"],
+            ["0100","1001","1000","1000","3000","1100","1001","1100","1101","0001"],
+            ["0100","0011","0010","0000","0010","0310","0013","0310","0113","0001"],
+            ["0000","1000","1000","1000","1000","1000","1000","1000","1000","1000"]
         ]
 
         self.grid = [
@@ -295,7 +302,7 @@ class ExplorerModel(Model):
             ]
 
         # Se llena el grid de fuego con posiciones iniciales
-        firePositions = [(1,1), (1,2), (3,4), (3,5), (6,5)]
+        firePositions = [(2, 2), (2, 3), (3, 2), (4, 3), (3, 3), (5, 3), (4, 4), (6, 5), (7, 5), (6, 6) ]
         for x, y in firePositions:
             self.grid[y][x].fire = True
         print(f"[INIT] Fuego inicial en: {firePositions}")
@@ -318,7 +325,7 @@ class ExplorerModel(Model):
                     agent.positionX, agent.positionY = x, y
                     print(f"[INIT] Agente {agent.idRobot} colocado en {(x, y)}")
                     break
-
+                    
     # Definir parejas -> model.assignPairs
     def assignPairs(self):
         for i in range(0, len(self.agents_list), 2):
@@ -354,10 +361,40 @@ class ExplorerModel(Model):
         x, y = self.RollDice()
         print(f"[FIRE] Tirada de fuego desde {(x, y)}")
         self.spreadFire(x, y)
+        # pongo un agente de prueba
+    
+    def get_new_fires_payload(self):
+        return {"fires": [{"x": x, "y": y} for (x, y) in self.newFire]}
+
+    def get_new_smoke_payload(self):
+        return {"smokes": [{"x": x, "y": y} for (x, y) in self.newSmoke]}
+    
+    def get_full_state(self):
+        agents = [
+            {
+                "name": agent.unique_id,
+                "x": agent.pos[0],
+                "y": 0,        # para Unity
+                "z": agent.pos[1]
+            }
+            for agent in self.schedule.agents
+        ]
+
+        fires = [
+            {"x": x, "y": y}
+            for y in range(self.height)
+            for x in range(self.width)
+            if self.grid[y][x].fire
+        ]
+
+        return {
+            "agents": agents,
+            "fires": fires
+        }
 
     def RollDice(self,):
-        x = self.random.randrange(self.width)
-        y = self.random.randrange(self.height)   
+        x = random.randint(1, self.width - 2)
+        y = random.randint(1, self.height - 2) 
         return x, y
     
     def placeFire(self, y, x, coordinate):
@@ -375,10 +412,25 @@ class ExplorerModel(Model):
             if not self.grid[ny][nx].fire:
                 self.grid[ny][nx].fire = True
                 print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dirección {coordinate} desde {(x, y)}")
+                fire = (y, x)
+                self.newFire.append(fire)
                 break
 
             ny += dy
             nx += dx
+    
+    def updateSmoke(self) : 
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.grid[y][x].smoke == True:
+                    for dy, dx in [(-1,0),(1,0),(0,-1),(0,1)]:
+                        ny, nx = y + dy, x + dx
+                        if 0 <= ny < self.height and 0 <= nx < self.width:
+                            neighbor = self.grid[ny][nx]
+                            if self.grid[ny][nx].fire == True: 
+                                self.grid[y][x].fire = True
+                                self.grid[y][x].smoke = False
+                                break
 
     def updateNeighbors(self, x, y, coordinate, newStatus):
         update = (coordinate + 2) % 4
@@ -398,9 +450,16 @@ class ExplorerModel(Model):
         return (self.damagedWalls == 24)
 
     def spreadFire(self, x, y):
-        if self.grid[y][x].fire == 0:
+        print(y, x)
+        if self.grid[y][x].fire == False and self.grid[y][x].smoke == False:
+            self.grid[y][x].smoke = True
+            smoke = (y, x)
+            self.newSmoke.append(smoke)
+        elif self.grid[y][x].fire == False and self.grid[y][x].smoke == True:
+            self.grid[y][x].smoke = False
             self.grid[y][x].fire = True
-            print(f"[FIRE] Encendido directo en {(x, y)} (no había fuego)")
+            fire = (y, x)
+            self.newFire.append(fire)
 
         else : # explosion
             print(f"[FIRE] ¡Explosión! en {(x, y)}")
@@ -434,7 +493,29 @@ class ExplorerModel(Model):
                     # actualizo vecinos que ya no hay pared
                     self.updateNeighbors(x, y, i, 0)
                     self.grid[y][x].walls[i] = 0
-                    print(f"[FIRE|EXPLODE] Puerta se abre (3→0) en {(x, y)} dir {i}")
+    
+    def step(self):
+        agent = self.myAgents[self.current_turn]
+        agent.move(self.width, self.height)
+        self.current_turn = (self.current_turn + 1) % len(self.myAgents)
+        self.newFire = []
+        self.newSmoke = []
+        x,y = self.RollDice()
+        self.spreadFire(x, y)
+        self.updateSmoke()
+    
+    def print_grid(self):
+        for y in range(self.height):
+            fila = []
+            for x in range(self.width):
+                walls_str = "".join(map(str, self.grid[y][x].walls))
+                if self.grid[y][x].fire:
+                    walls_str += "F"
+                elif self.grid[y][x].smoke:
+                    walls_str += "S"
+                fila.append(walls_str)
+            print(fila)
+            
 
 def gridArray(model):
     arr = np.zeros((model.height, model.width))
@@ -442,32 +523,47 @@ def gridArray(model):
         for x in range(model.width):
             if model.grid[y][x].fire:
                 arr[y][x] = 1
+            elif model.grid[y][x].smoke: 
+                arr[y][x] = 2
     return arr
 
 allGrids = []
-
-model = ExplorerModel()
-while model.currentStep < 50:
+agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+model = ExplorerModel(agent_names)
+model.print_grid()
+print("----------------------")
+while model.currentStep < 1:
     model.step()
     allGrids.append(gridArray(model))
     model.currentStep += 1 
+model.print_grid()
+# fig, axs = plt.subplots(figsize=(5, 5))
+# axs.set_xticks([])
+# axs.set_yticks([])
 
-fig, axs = plt.subplots(figsize=(4, 4))
-axs.set_xticks([])
-axs.set_yticks([])
+# # Definir colores: 0=blanco, 1=rojo (fuego), 2=gris (humo)
+# cmap = ListedColormap(['white', 'red', 'gray'])
 
-patch = axs.imshow(allGrids[0], cmap=plt.cm.binary)
+# # Margen visual entre celdas
+# margin = 0.5
+# height, width = allGrids[0].shape
+# patch = axs.imshow(
+#     allGrids[0],
+#     cmap=cmap,
+#     extent=[-margin, width-1+margin, -margin, height-1+margin],
+#     interpolation='none'
+# )
 
-def animate(i):
-    patch.set_data(allGrids[i])
-    return [patch]
+# def animate(i):
+#     patch.set_data(allGrids[i])
+#     return [patch]
 
-anim = animation.FuncAnimation(
-    fig,
-    animate,
-    frames=len(allGrids),
-    interval=300,
-    blit=True
-)
+# anim = animation.FuncAnimation(
+#     fig,
+#     animate,
+#     frames=len(allGrids),
+#     interval=300,
+#     blit=True
+# )
 
-plt.show()
+# plt.show()

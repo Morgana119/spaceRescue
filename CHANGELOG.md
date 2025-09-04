@@ -1,5 +1,12 @@
 # Changelog
 
+# [Kami/agentes] (04/09/2025)
+
+### Added
+- Model Class with fire behaviour
+- Script for Fire Grid Manager on Unity
+- Route for full State of Grid
+
 # [fa/unity] (03/09/2025)
 
 ### Changed
@@ -10,6 +17,21 @@ for it to be destroyed
 
 ### Added
 - Add agent class and methods
+
+# [Ale_flask_conection] (01/09/2025)
+
+### CHANGED
+- Flask sends information of every agent through the JSON
+- Unity accepts through dictionaries the information that the API sent
+- Flask sends information based on a step for every turn
+
+# [Ale_flask_conection] (01/09/2025)
+
+### Added
+- Unity scripts for flask connection with comments
+
+### Changed
+- flask agent class
 
 # [fa/unity] (28/08/2025)
 
