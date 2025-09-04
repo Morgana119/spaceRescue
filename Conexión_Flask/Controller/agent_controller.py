@@ -1,6 +1,7 @@
 # Importamos las librerías necesarias
 from flask import Blueprint, jsonify, request
-from Model.agent import Model  # diccionario con todos los agentes
+# from Model.agent import Model  # diccionario con todos los agentes
+from Model.agentes import ExplorerModel
 
 
 # Definimos un "Blueprint" llamado agent_bp
@@ -43,20 +44,26 @@ def all_agents_pos():
 '''
 
 # Agent names
-COLORS = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 
 # Se inicializa el modelo con esos agentes
 # Cada agente recibe un nombre y una posición inicial aleatoria
-model = Model(COLORS)
+#model = Model(COLORS)
 
 # ------------------- RUTA FLASK -------------------
 
-# Ruta para mover agentes: "/move/agents"
-# Método: GET
-@agent_bp.route("/move/agents", methods=["GET"])
-def move_agents_step():
-    # Ejecuta un paso de la simulación
-    # En este paso SOLO se mueve el agente cuyo turno corresponde
-    model.step()
-    # Devuelve en formato JSON las posiciones actualizadas de todos los agentes
-    return jsonify(model.get_payload())
+# # Ruta para mover agentes: "/move/agents"
+# # Método: GET
+# @agent_bp.route("/move/agents", methods=["GET"])
+# def move_agents_step():
+#     # Ejecuta un paso de la simulación
+#     # En este paso SOLO se mueve el agente cuyo turno corresponde
+#     model.step()
+#     # Devuelve en formato JSON las posiciones actualizadas de todos los agentes
+#     return jsonify(model.get_payload())
+explorer_model = ExplorerModel(agent_names)
+
+@agent_bp.route("/state", methods=["GET"])
+def get_state():
+    # explorer_model.step()  
+    return jsonify(explorer_model.get_full_state())

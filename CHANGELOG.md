@@ -1,5 +1,12 @@
 # Changelog
 
+# [Kami/agentes] (04/09/2025)
+
+### Added
+- Model Class with fire behaviour
+- Script for Fire Grid Manager on Unity
+- Route for full State of Grid
+
 # [Ale_flask_conection] (01/09/2025)
 
 ### CHANGED
