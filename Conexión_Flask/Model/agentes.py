@@ -70,7 +70,7 @@ class ExplorerModel(Model):
         self.maxDeadVictims = 4       # pierde si llega aquí
         self.victimsToSave = 7        # gana si llega aquí
         
-        self.ambulanceSpots = [(0, 0), (self.width - 1, self.height - 1)]
+        self.ambulanceSpots = [(0, 0), (5, 0), (6, 0), (9, 3), (9, 4), (0, 3), (0, 4), (3, 7), (4, 7)]
         self.newlyIgnited = set()  # {(x, y)} casillas que pasaron a fuego en el turno
 
         self.actionsLog = []
@@ -125,25 +125,64 @@ class ExplorerModel(Model):
             self.schedule.add(a)
             self.agentList.append(a)
 
-        # colocar agentes
+    # Colocar agentes en solucion random
+    def placeRandomAgents(self):
         for agent in self.agentList:
             while True:
-                x = self.random.randrange(self.width)
-                y = self.random.randrange(self.height)
-                if self.agentsGrid.is_cell_empty( (x, y) ) and self.grid[y][x].fire == False:
+                # elegir una casilla de las orillas
+                side = self.random.choice(["top", "bottom", "left", "right"])
+                if side == "top":
+                    x = self.random.randrange(self.width)
+                    y = 0
+                elif side == "bottom":
+                    x = self.random.randrange(self.width)
+                    y = self.height - 1
+                elif side == "left":
+                    x = 0
+                    y = self.random.randrange(self.height)
+                elif side == "right":
+                    x = self.width - 1
+                    y = self.random.randrange(self.height)
+
+                # condiciones: celda vacía y sin fuego
+                if self.agentsGrid.is_cell_empty((x, y)) and not self.grid[y][x].fire:
                     self.agentsGrid.place_agent(agent, (x, y))
                     agent.positionX, agent.positionY = x, y
-                    print(f"[INIT] Agente {agent.idRobot} colocado en {(x, y)}")
+                    print(f"[INIT] Agente {agent.idRobot} colocado en {(x, y)})")
                     break
-                    
+
     # Definir parejas -> model.assignPairs
     def assignPairs(self):
-        for i in range(0, len(self.agentList), 2):
-            if i + 1 < len(self.agentList):
-                a1 = self.agentList[i]
-                a2 = self.agentList[i + 1]
-                a1.partner = a2.unique_id
-                a2.partner = a1.unique_id
+        entrances = [(0,6), (9,4), (3,7), (1,3)]
+        pairs = [(self.agentList[i], self.agentList[i+1]) for i in range(0, len(self.agentList)-1, 2)]
+        chosen = self.random.sample(entrances, k=min(3, len(pairs), len(entrances)))
+
+        for (a1, a2), (ex, ey) in zip(pairs, chosen):
+            # a1 directo en la entrada
+            self.agentsGrid.place_agent(a1, (ex, ey))
+            a1.positionX, a1.positionY = ex, ey
+            print(f"[INIT] {a1.idRobot} en entrada {(ex, ey)}")
+
+            # a2 en una orilla adyacente a la entrada
+            placed_pair = False
+            for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+                nx, ny = ex + dx, ey + dy
+                if 0 <= nx < self.width and 0 <= ny < self.height:
+                    if (nx == 0 or ny == 0 or nx == self.width - 1 or ny == self.height - 1):
+                        if self.agentsGrid.is_cell_empty((nx, ny)):
+                            self.agentsGrid.place_agent(a2, (nx, ny))
+                            a2.positionX, a2.positionY = nx, ny
+                            print(f"[INIT] {a2.idRobot} en {(nx, ny)} (pareja de {a1.idRobot})")
+                            placed_pair = True
+                            break
+            # Si no encontró adyacente libre, ponlo en otra entrada libre
+            if not placed_pair:
+                for (fx, fy) in entrances:
+                    if self.agentsGrid.is_cell_empty((fx, fy)):
+                        self.agentsGrid.place_agent(a2, (fx, fy))
+                        a2.positionX, a2.positionY = fx, fy
+                        print(f"[INIT] {a2.idRobot} en {(fx, fy)} (fallback)")
+                        break
     
     def print_grid(self):
         for y in range(self.height):
@@ -386,9 +425,15 @@ class ExplorerModel(Model):
         # Reponer hasta 3 por dados
         self.ensure3POI()
     
-    # def nearestAmbulance():
-        # MANHATTAN
-    # def teleportTo():
+    # Escoge la ambulancia más cercana por distancia Manhattan
+    def nearestAmbulance(self, x, y):
+        return min(self.ambulanceSpots, key=lambda s: abs(x - s[0]) + abs(y - s[1]))
+    
+    def teleportTo(self, agent, pos):
+        ax, ay = pos
+        self.agentsGrid.move_agent(agent, (ax, ay))
+        agent.positionX, agent.positionY = ax, ay
+        self.actionsLog.append(('model', 'teleport', agent.idRobot, ax, ay))
         
     def knockdown(self, agent):
         self.actionsLog.append(('model', 'knockdown', agent.idRobot, agent.positionX, agent.positionY))
@@ -424,16 +469,6 @@ class ExplorerModel(Model):
             return True, "WIN"
 
         return False, None
-
-    # def step(self):
-    #     agent = self.myAgents[self.current_turn]
-    #     agent.move(self.width, self.height)
-    #     self.current_turn = (self.current_turn + 1) % len(self.myAgents)
-    #     self.newFire = []
-    #     self.newSmoke = []
-    #     x,y = self.RollDice()
-    #     self.spreadFire(x, y)
-    #     self.updateSmoke()
 
     def step(self):
         self.actionsLog = []

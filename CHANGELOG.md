@@ -2,15 +2,18 @@
 
 # [fa/agentes] (05/09/2025)
 
-### Changed
-- Separete agent class to other file
-
-# [fa/agentes] (05/09/2025)
-
 ### Added
 - POI methods
 - Actions logs list
 - Game win or loss conditions
+
+- nearAmbulance() method
+- teleportTo() method
+- placeAgent random method
+- placeAgent strategy method
+
+### Changed
+- Separete agent class to other file
 
 # [fa/agentes] (05/09/2025)
 
