@@ -1,51 +1,28 @@
 using UnityEngine; // Necesario para usar MonoBehaviour y JsonUtility
 using UnityEngine.Networking; // Para hacer peticiones HTTP (GET, POST)
 using System.Collections; // Para corutinas
+using System.Collections.Generic;
 //using System;
 
-
-public class ApiHelper : MonoBehaviour
+[System.Serializable]
+public class GridChangePayload
 {
-    private string url = "http://127.0.0.1:5000"; // Dirección del servidor Flask
-    public AgentsPayLoad lastPayload; // Último JSON parseado
+    public string type;
+    public int x;
+    public int y;
+}
 
-    // Corutina que obtiene la posición actualizada del agente desde el servidor
-    public IEnumerator pos_agent()
-    {
-        // Endpoint que consulta el estado del agente
-        string web_url_getPos = url + "/move/agents";
-        Debug.Log("Get: " + web_url_getPos);
+[System.Serializable]
+public class FullStatePayload
+{
+    public GridChangePayload[] changes;
+}
 
-        // Realiza la petición GET
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(web_url_getPos))
-        {
-            // Espera a que termina la conexión
-            yield return webRequest.SendWebRequest();
-
-            // Manejo de errores
-            if (webRequest.isNetworkError)
-            {
-                // Si falla la conexión, se muestra error y se resetea la variable
-                Debug.LogError("Error: " + webRequest.error);
-            }
-            else
-            {
-                // Se recibe la respuesta JSON con "x" y "y"
-                string jsonResponse = webRequest.downloadHandler.text.Trim();
-
-                // Convierte el JSON recibido a la clase AgentsPayLoad
-                lastPayload = JsonUtility.FromJson<AgentsPayLoad>(jsonResponse);
-
-                // Muestra en consola la posición recibida desde Flask
-                foreach (var a in lastPayload.agents) Debug.Log($"{a.name}: ({a.x},{a.y}, {a.z})");
-            }
-        }
-    }
-
+public class ApiHelper : MonoBehaviour {
+    private string url = "http://127.0.0.1:5000";
     public FullStatePayload lastFullState;
-    public GridFireManager gridFireManager;
 
-   public IEnumerator GetFullState()
+    public IEnumerator GetFullState()
     {
         string web_url = url + "/state";
         using (UnityWebRequest webRequest = UnityWebRequest.Get(web_url))
@@ -61,20 +38,96 @@ public class ApiHelper : MonoBehaviour
             {
                 string jsonResponse = webRequest.downloadHandler.text.Trim();
 
-                // Parsear lista de fuegos
-                FireList fireList = JsonUtility.FromJson<FireList>(jsonResponse);
-                foreach (var fire in fireList.fires)
-                {
-                    gridFireManager.SetFire(fire.x, fire.y, true);
-                }
-
                 // Guardar el estado completo
                 lastFullState = JsonUtility.FromJson<FullStatePayload>(jsonResponse);
+
+                // Mostrar los cambios recibidos
+                if (lastFullState != null && lastFullState.changes != null)
+                {
+                    foreach (var c in lastFullState.changes)
+                    {
+                        Debug.Log($"Cambio recibido: {c.type} en ({c.x},{c.y})");
+                        if (gridFireManager != null)
+                            gridFireManager.SetFire(c.x, c.y, c.type == "fire");
+                    }
+                }
             }
         }
     }
 
 }
+
+// public class ApiHelper : MonoBehaviour
+// {
+//     private string url = "http://127.0.0.1:5000"; // Dirección del servidor Flask
+//     public AgentsPayLoad lastPayload; // Último JSON parseado
+
+//     // Corutina que obtiene la posición actualizada del agente desde el servidor
+//     public IEnumerator pos_agent()
+//     {
+//         // Endpoint que consulta el estado del agente
+//         string web_url_getPos = url + "/move/agents";
+//         Debug.Log("Get: " + web_url_getPos);
+
+//         // Realiza la petición GET
+//         using (UnityWebRequest webRequest = UnityWebRequest.Get(web_url_getPos))
+//         {
+//             // Espera a que termina la conexión
+//             yield return webRequest.SendWebRequest();
+
+//             // Manejo de errores
+//             if (webRequest.isNetworkError)
+//             {
+//                 // Si falla la conexión, se muestra error y se resetea la variable
+//                 Debug.LogError("Error: " + webRequest.error);
+//             }
+//             else
+//             {
+//                 // Se recibe la respuesta JSON con "x" y "y"
+//                 string jsonResponse = webRequest.downloadHandler.text.Trim();
+
+//                 // Convierte el JSON recibido a la clase AgentsPayLoad
+//                 lastPayload = JsonUtility.FromJson<AgentsPayLoad>(jsonResponse);
+
+//                 // Muestra en consola la posición recibida desde Flask
+//                 foreach (var a in lastPayload.agents) Debug.Log($"{a.name}: ({a.x},{a.y}, {a.z})");
+//             }
+//         }
+//     }
+
+//     public FullStatePayload lastFullState;
+//     public GridFireManager gridFireManager;
+
+//    public IEnumerator GetFullState()
+//     {
+//         string web_url = url + "/state";
+//         using (UnityWebRequest webRequest = UnityWebRequest.Get(web_url))
+//         {
+//             yield return webRequest.SendWebRequest();
+
+//             if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
+//                 webRequest.result == UnityWebRequest.Result.ProtocolError)
+//             {
+//                 Debug.LogError("Error: " + webRequest.error);
+//             }
+//             else
+//             {
+//                 string jsonResponse = webRequest.downloadHandler.text.Trim();
+
+//                 // Parsear lista de fuegos
+//                 FireList fireList = JsonUtility.FromJson<FireList>(jsonResponse);
+//                 foreach (var fire in fireList.fires)
+//                 {
+//                     gridFireManager.SetFire(fire.x, fire.y, true);
+//                 }
+
+//                 // Guardar el estado completo
+//                 lastFullState = JsonUtility.FromJson<FullStatePayload>(jsonResponse);
+//             }
+//         }
+//     }
+
+// }
 
     /* void Start(){
         // Inicia la primera petición GET al servidor para probar conexión

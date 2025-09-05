@@ -45,6 +45,14 @@ class Cell:
         self.hasToken = False
         self.smoke = False
 
+class GridChange:
+    def __init__(self, change_type, x, y):
+        self.type = change_type 
+        self.pos = (x, y)        
+
+    def __repr__(self):
+        return f"GridChange(type={self.type}, pos={self.pos})"
+
 class RobotAgent(Agent):
     def __init__(self, model):
         super().__init__(model)
@@ -273,8 +281,7 @@ class ExplorerModel(Model):
         self.agentIndex = 0
         self.currentStep = 0 
         self.numRobots = numRobots
-        self.newFire = []
-        self.newSmoke = []
+        self.changes = []
         self.current_turn = 0
         self.myAgents = []
         
@@ -363,33 +370,14 @@ class ExplorerModel(Model):
         self.spreadFire(x, y)
         # pongo un agente de prueba
     
-    def get_new_fires_payload(self):
-        return {"fires": [{"x": x, "y": y} for (x, y) in self.newFire]}
-
-    def get_new_smoke_payload(self):
-        return {"smokes": [{"x": x, "y": y} for (x, y) in self.newSmoke]}
-    
     def get_full_state(self):
-        agents = [
-            {
-                "name": agent.unique_id,
-                "x": agent.pos[0],
-                "y": 0,        # para Unity
-                "z": agent.pos[1]
-            }
-            for agent in self.schedule.agents
-        ]
-
-        fires = [
-            {"x": x, "y": y}
-            for y in range(self.height)
-            for x in range(self.width)
-            if self.grid[y][x].fire
+        changes_list = [
+            {"type": change.type, "x": change.pos[0], "y": change.pos[1]}
+            for change in self.changes
         ]
 
         return {
-            "agents": agents,
-            "fires": fires
+            "changes": changes_list
         }
 
     def RollDice(self,):
@@ -413,7 +401,7 @@ class ExplorerModel(Model):
                 self.grid[ny][nx].fire = True
                 print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dirección {coordinate} desde {(x, y)}")
                 fire = (y, x)
-                self.newFire.append(fire)
+                self.changes.append(GridChange("fire", x, y))
                 break
 
             ny += dy
@@ -430,6 +418,7 @@ class ExplorerModel(Model):
                             if self.grid[ny][nx].fire == True: 
                                 self.grid[y][x].fire = True
                                 self.grid[y][x].smoke = False
+                                self.changes.append(GridChange("fire", x, y))
                                 break
 
     def updateNeighbors(self, x, y, coordinate, newStatus):
@@ -454,12 +443,11 @@ class ExplorerModel(Model):
         if self.grid[y][x].fire == False and self.grid[y][x].smoke == False:
             self.grid[y][x].smoke = True
             smoke = (y, x)
-            self.newSmoke.append(smoke)
+            self.changes.append(GridChange("smoke", x, y))
         elif self.grid[y][x].fire == False and self.grid[y][x].smoke == True:
             self.grid[y][x].smoke = False
             self.grid[y][x].fire = True
-            fire = (y, x)
-            self.newFire.append(fire)
+            self.model.changes.append(GridChange("fire", x, y))
 
         else : # explosion
             print(f"[FIRE] ¡Explosión! en {(x, y)}")
@@ -494,15 +482,6 @@ class ExplorerModel(Model):
                     self.updateNeighbors(x, y, i, 0)
                     self.grid[y][x].walls[i] = 0
     
-    def step(self):
-        agent = self.myAgents[self.current_turn]
-        agent.move(self.width, self.height)
-        self.current_turn = (self.current_turn + 1) % len(self.myAgents)
-        self.newFire = []
-        self.newSmoke = []
-        x,y = self.RollDice()
-        self.spreadFire(x, y)
-        self.updateSmoke()
     
     def print_grid(self):
         for y in range(self.height):

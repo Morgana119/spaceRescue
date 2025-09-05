@@ -42,32 +42,32 @@ public class MoveAgent : MonoBehaviour
     // Se llama la corutina
     void Start()
     {
-        StartCoroutine(LoopUpdate()); // se llama a la corutina de LoopUpdate()
+        // StartCoroutine(LoopUpdate()); // se llama a la corutina de LoopUpdate()
     }
     
     // Corrutina que actualiza continuamente la posición de TODOS agente
-    IEnumerator LoopUpdate(){
-        while(true){
-            yield return StartCoroutine(api.pos_agent()); // Se llama al metodo pos_agent de la api
+    // IEnumerator LoopUpdate(){
+    //     while(true){
+    //         yield return StartCoroutine(api.pos_agent()); // Se llama al metodo pos_agent de la api
 
-            // Si se recibio algo, recorre y actualiza cada Transform
-            if (api.lastPayload != null && api.lastPayload.agents != null){
-                // Recorre el arreglo creado en la clase del archivo Varibales AgentsPayLoad
-                foreach (var a in api.lastPayload.agents){
-                    if (map.TryGetValue(a.name, out var t) && t != null){
-                        t.position = new Vector3(a.x, 0, a.z);
-                    } else {
-                        Debug.Log("No hay Transform asignado para el agente: " + a.name);
-                    }
-                }
+    //         // Si se recibio algo, recorre y actualiza cada Transform
+    //         if (api.lastPayload != null && api.lastPayload.agents != null){
+    //             // Recorre el arreglo creado en la clase del archivo Varibales AgentsPayLoad
+    //             foreach (var a in api.lastPayload.agents){
+    //                 if (map.TryGetValue(a.name, out var t) && t != null){
+    //                     t.position = new Vector3(a.x, 0, a.z);
+    //                 } else {
+    //                     Debug.Log("No hay Transform asignado para el agente: " + a.name);
+    //                 }
+    //             }
 
-                // espera el tiempo del intervalo
-                yield return new WaitForSeconds(updateInterval);
-            }
-        }
-    }
+    //             // espera el tiempo del intervalo
+    //             yield return new WaitForSeconds(updateInterval);
+    //         }
+    //     }
+    // }
     
-    public void UpdateAgents(AgentPos[] agents)
+    public void UpdateAgents(List<AgentPayload> agents)
     {
         foreach (var a in agents)
         {
@@ -75,8 +75,14 @@ public class MoveAgent : MonoBehaviour
             {
                 t.position = new Vector3(a.x, 0, a.z);
             }
+            else
+            {
+                Debug.LogWarning("No hay Transform asignado para el agente: " + a.name);
+            }
         }
     }
+
+
 
 
     // Corrutina que actualiza continuamente la posición de UN agente
