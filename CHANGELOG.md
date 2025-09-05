@@ -2,6 +2,18 @@
 
 # [fa/agentes] (05/09/2025)
 
+### Changed
+- Separete agent class to other file
+
+# [fa/agentes] (05/09/2025)
+
+### Added
+- POI methods
+- Actions logs list
+- Game win or loss conditions
+
+# [fa/agentes] (05/09/2025)
+
 ### Added
 - POI methods
 - Actions logs list
