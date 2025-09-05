@@ -44,6 +44,7 @@ class Cell:
         self.fire = False
         self.hasToken = False
         self.smoke = False
+        self.poiHidden = None   # 'V' o 'F' si hay POI oculto
 
 class RobotAgent(Agent):
     def __init__(self, model):
@@ -94,12 +95,11 @@ class RobotAgent(Agent):
         self.model.agentsGrid.move_agent(self, (nx, ny))
         self.positionX, self.positionY = nx, ny
         self.actionPoints -= cost
+        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionX, self.positionY))
 
         # auto-revelar POI si entras en la celda
         if dest.hasToken:
-            dest.hasToken = False
-            self.carriesPOI = True
-            print(f"[Agente {self.idRobot}] AUTO_REVEAL_POI en {(nx, ny)}")
+            self.model.revealPOI(nx, ny, self)  # ahora el modelo maneja revelar y reponer
 
         print(f"[Agente {self.idRobot}] MOVE a {(nx, ny)} cost={cost}, AP={self.actionPoints}")
         return True
@@ -117,6 +117,7 @@ class RobotAgent(Agent):
         self.model.updateNeighbors(x, y, d, 0)
         self.model.grid[y][x].walls[d] = 0
         self.actionPoints -= 1
+        self.model.actionsLog.append(('agent', self.idRobot, 'openDoor', x, y, d))
         print(f"[Agente {self.idRobot}] OPEN_DOOR dir={d}, AP={self.actionPoints}")
         return True  
     
@@ -135,6 +136,7 @@ class RobotAgent(Agent):
                 return False
             dest.smoke = False
             self.actionPoints -= 1
+            self.model.actionsLog.append(('agent', self.idRobot, 'stopSmoke', nx, ny))
             print(f"[Agente {self.idRobot}] STOP_SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -145,6 +147,7 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = True
             self.actionPoints -= 1
+            self.model.actionsLog.append(('agent', self.idRobot, 'fireToSmoke', nx, ny))
             print(f"[Agente {self.idRobot}] EXTINGUISH_FIRE→SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
         return False  
@@ -161,6 +164,7 @@ class RobotAgent(Agent):
             cell.fire = False
             cell.smoke = False
             self.actionPoints -= 2
+            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', self.positionX, self.positionY))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en propia {(self.positionX, self.positionY)}, AP={self.actionPoints}")
             return True
         else:
@@ -175,6 +179,7 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = False
             self.actionPoints -= 2
+            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', nx, ny))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -200,6 +205,7 @@ class RobotAgent(Agent):
             self.model.grid[y][x].walls[d] = 2
             self.model.damagedWalls += 1
             self.actionPoints -= 2
+            self.model.actionsLog.append(('agent', self.idRobot, 'weakenWall', x, y, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (debilitar 1→2) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
 
@@ -210,6 +216,7 @@ class RobotAgent(Agent):
             self.model.grid[y][x].walls[d] = 0
             self.model.damagedWalls += 1
             self.actionPoints -= 2
+            self.model.actionsLog.append(('agent', self.idRobot, 'breakWall', x, y, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (romper 2→0) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
             
@@ -277,7 +284,16 @@ class ExplorerModel(Model):
         self.newSmoke = []
         self.current_turn = 0
         self.myAgents = []
+        self.deadVictims = 0
+        self.maxDamagedWalls = 24     # pierde si llega aquí
+        self.maxDeadVictims = 4       # pierde si llega aquí
+        self.victimsToSave = 7        # gana si llega aquí
         
+        self.ambulanceSpots = [(0, 0), (self.width - 1, self.height - 1)]
+        self.newlyIgnited = set()  # {(x, y)} casillas que pasaron a fuego en el turno
+
+        self.actionsLog = []
+
         # Se llena el grid de los estados de las paredes
         # 0 -> ausencia
         # 1 -> pared completa
@@ -307,16 +323,29 @@ class ExplorerModel(Model):
             self.grid[y][x].fire = True
         print(f"[INIT] Fuego inicial en: {firePositions}")
 
+        self.poiDeck = ['V'] * 10 + ['F'] * 5
+        self.random.shuffle(self.poiDeck)
+        self.poisOnBoard = set()   # {(x,y)}
+
+        # Iniciales
+        initPOI = [(2, 4), (5, 1), (5, 8)]
+        for (x, y) in initPOI:
+            self.placeNewPOI(x, y, by_dice=False)
+
+        # Si alguna no pudo (fuego, fuera, agente, etc.), rellena por dados hasta llegar a 3
+        self.ensure3POI()
+        print(f"[POI|INIT] POIs en tablero: {sorted(list(self.poisOnBoard))} | mazo={len(self.poiDeck)}")
+
         # Crear agentes
-        self.agents_list = []
+        self.agentList = []
         self.current_turn = 0
         for i in range(self.numRobots):
             a = RobotAgent(self)
             self.schedule.add(a)
-            self.agents_list.append(a)
+            self.agentList.append(a)
 
         # colocar agentes
-        for agent in self.agents_list:
+        for agent in self.agentList:
             while True:
                 x = self.random.randrange(self.width)
                 y = self.random.randrange(self.height)
@@ -328,10 +357,10 @@ class ExplorerModel(Model):
                     
     # Definir parejas -> model.assignPairs
     def assignPairs(self):
-        for i in range(0, len(self.agents_list), 2):
-            if i + 1 < len(self.agents_list):
-                a1 = self.agents_list[i]
-                a2 = self.agents_list[i + 1]
+        for i in range(0, len(self.agentList), 2):
+            if i + 1 < len(self.agentList):
+                a1 = self.agentList[i]
+                a2 = self.agentList[i + 1]
                 a1.partner = a2.unique_id
                 a2.partner = a1.unique_id
     
@@ -344,24 +373,6 @@ class ExplorerModel(Model):
                     walls_str += "F"
                 fila.append(walls_str)
             print(fila)
-
-    def step(self):
-        if not self.agents_list:
-            return
-
-        # agente del turno actual
-        agent = self.agents_list[self.current_turn]
-        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
-        agent.step()  # este agente gasta hasta 4 PA en su propio step()
-
-        # avanza el turno de forma cíclica
-        self.current_turn = (self.current_turn + 1) % len(self.agents_list)
-
-        # dinámica de fuego
-        x, y = self.RollDice()
-        print(f"[FIRE] Tirada de fuego desde {(x, y)}")
-        self.spreadFire(x, y)
-        # pongo un agente de prueba
     
     def get_new_fires_payload(self):
         return {"fires": [{"x": x, "y": y} for (x, y) in self.newFire]}
@@ -414,6 +425,8 @@ class ExplorerModel(Model):
                 print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dirección {coordinate} desde {(x, y)}")
                 fire = (y, x)
                 self.newFire.append(fire)
+                self.newlyIgnited.add((nx, ny))
+                self.actionsLog.append(('model', 'ignite', nx, ny))
                 break
 
             ny += dy
@@ -455,11 +468,15 @@ class ExplorerModel(Model):
             self.grid[y][x].smoke = True
             smoke = (y, x)
             self.newSmoke.append(smoke)
+            self.actionsLog.append(('model', 'smoke', x, y))
         elif self.grid[y][x].fire == False and self.grid[y][x].smoke == True:
             self.grid[y][x].smoke = False
             self.grid[y][x].fire = True
             fire = (y, x)
             self.newFire.append(fire)
+            self.newlyIgnited.add((x, y))
+            self.actionsLog.append(('model', 'ignite', x, y))
+
 
         else : # explosion
             print(f"[FIRE] ¡Explosión! en {(x, y)}")
@@ -493,17 +510,180 @@ class ExplorerModel(Model):
                     # actualizo vecinos que ya no hay pared
                     self.updateNeighbors(x, y, i, 0)
                     self.grid[y][x].walls[i] = 0
+
+    # Válida = dentro de tablero, sin fuego, sin otro POI.
+    # Permitimos humo y agentes (si quieres evitar agentes, agrega un check a is_cell_empty).
+    def cellPOI(self, x, y):
+        # Debe estar dentro del tablero
+        if not (0 <= x < self.width and 0 <= y < self.height):
+            return False
+
+        cell = self.grid[y][x]
+
+        # No permitir si: fuego, humo o ya hay otro POI
+        if cell.fire or cell.smoke or cell.hasToken:
+            return False
+
+        # No permitir si hay cualquier agente en la celda
+        if self.agentsGrid.get_cell_list_contents((x, y)):
+            return False
+
+        return True
     
+    # Elige coordenadas con dados (RollDice) hasta encontrar una celda válida
+    def dicePOI(self, max_tries=500):
+        for _ in range(max_tries):
+            x, y = self.RollDice()          
+            if self.cellPOI(x, y):
+                return (x, y)
+        return None
+    
+    # Coloca un POI boca abajo sacando del mazo. Si by_dice=True y la celda no sirve, reintenta por dados
+    def placeNewPOI(self, x, y, by_dice=True):
+        if not self.poiDeck:
+            print("[POI|PLACE] Mazo vacío: no se puede colocar más POI")
+            return False
+
+        if by_dice and not self.cellPOI(x, y):
+            # si nos dieron coords pero no es válida, ignora y busca por dados
+            spot = self.dicePOI()
+            if spot is None:
+                print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
+                return False
+            x, y = spot
+        else:
+            if not self.cellPOI(x, y):
+                print(f"[POI|PLACE] Invalid spot {(x,y)}; reintentando con dados...")
+                spot = self.dicePOI()
+                if spot is None:
+                    print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
+                    return False
+                x, y = spot
+
+        # Saca la carta del mazo y colócala oculta en la celda
+        card = self.poiDeck.pop()   # 'V' o 'F', queda oculta
+        cell = self.grid[y][x]
+        cell.hasToken = True
+        cell.poiHidden = card
+        self.poisOnBoard.add((x, y))
+        self.actionsLog.append(('model', 'poiPlaced', x, y))
+        print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
+        return True
+
+    # Mantiene 3 POI en tablero mientras quede mazo; coloca por 'dados'
+    def ensure3POI(self):
+        while len(self.poisOnBoard) < 3 and self.poiDeck:
+            spot = self.dicePOI()
+            if spot is None:
+                print("[POI|ENSURE] No hay spots válidos por dados para reponer POI")
+                break
+            x, y = spot
+            self.placeNewPOI(x, y, by_dice=False)
+        print(f"[POI|STATE] En tablero={len(self.poisOnBoard)} | Mazo={len(self.poiDeck)}")
+    
+    # Se llama cuando el agente entra a la celda (x,y) con un POI
+    def revealPOI(self, x, y, agent):
+        cell = self.grid[y][x]
+        if not cell.hasToken:
+            return
+
+        kind = cell.poiHidden  # 'V' o 'F'
+        cell.hasToken = False
+        cell.poiHidden = None
+        if (x, y) in self.poisOnBoard:
+            self.poisOnBoard.remove((x, y))
+
+        if kind == 'V':
+            agent.carriesPOI = True
+            print(f"[POI|REVEAL] VÍCTIMA en {(x, y)} → {agent.idRobot} ahora la transporta")
+        else:
+            print(f"[POI|REVEAL] FALSA ALARMA en {(x, y)}")
+        
+        self.actionsLog.append(('model', 'poiReveal', x, y, kind))  # kind: 'V' o 'F'
+        # Reponer hasta 3 por dados
+        self.ensure3POI()
+    
+    # def nearestAmbulance():
+        
+    # def teleportTo():
+        
+    def knockdown(self, agent):
+        self.actionsLog.append(('model', 'knockdown', agent.idRobot, agent.positionX, agent.positionY))
+
+        # Si llevaba víctima, se pierde
+        if agent.carriesPOI:
+            agent.carriesPOI = False
+            self.deadVictims += 1
+            print(f"[KNOCKDOWN] {agent.idRobot} derribado CON VÍCTIMA → víctima perdida. Muertas={self.deadVictims}")
+
+        # Teletransporte a ambulancia
+        ax, ay = self.nearestAmbulance(agent.positionX, agent.positionY)
+        print(f"[KNOCKDOWN] {agent.idRobot} → Ambulancia {(ax, ay)}")
+        self.teleportTo(agent, (ax, ay))
+
+        # Cerrar su turno actual (el siguiente turno arrancará con 4 PA)
+        agent.actionPoints = 0
+
+    def checkGameOver(self):
+        # Colapso edificio
+        if self.damagedWalls >= self.maxDamagedWalls:
+            print("[GAME OVER] El edificio colapsó. 🔨")
+            return True, "LOSE"
+
+        # Demasiadas víctimas muertas
+        if self.deadVictims >= self.maxDeadVictims:
+            print("[GAME OVER] Han muerto 4 víctimas. 💀")
+            return True, "LOSE"
+
+        # Suficientes víctimas rescatadas
+        if self.savedVictims >= self.victimsToSave:
+            print("[VICTORY] Se rescataron 7 víctimas. 🏆")
+            return True, "WIN"
+
+        return False, None
+
+    # def step(self):
+    #     agent = self.myAgents[self.current_turn]
+    #     agent.move(self.width, self.height)
+    #     self.current_turn = (self.current_turn + 1) % len(self.myAgents)
+    #     self.newFire = []
+    #     self.newSmoke = []
+    #     x,y = self.RollDice()
+    #     self.spreadFire(x, y)
+    #     self.updateSmoke()
+
     def step(self):
-        agent = self.myAgents[self.current_turn]
-        agent.move(self.width, self.height)
-        self.current_turn = (self.current_turn + 1) % len(self.myAgents)
-        self.newFire = []
-        self.newSmoke = []
-        x,y = self.RollDice()
+        self.actionsLog = []
+        self.newlyIgnited = set()
+        if not self.agentList:
+            return
+
+        # agente del turno actual
+        agent = self.agentList[self.current_turn]
+        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
+        agent.step()  # este agente gasta hasta 4 PA en su propio step()
+
+        # avanza el turno de forma cíclica
+        self.current_turn = (self.current_turn + 1) % len(self.agentList)
+
+        # dinámica de fuego
+        x, y = self.RollDice()
+        self.actionsLog.append(('model', 'dice', x, y))
+        print(f"[FIRE] Tirada de fuego desde {(x, y)}")
         self.spreadFire(x, y)
-        self.updateSmoke()
-    
+        self.ensure3POI()
+
+        # Si alguien está en una casilla recién encendida, knockdown
+        for a in self.agentList:
+            if (a.positionX, a.positionY) in self.newlyIgnited:
+                self.knockdown(a)
+
+        # Checar si se acabó el juego
+        ended, result = self.checkGameOver()
+        if ended:
+            print(f"[END] Resultado: {result}")
+            return
+
     def print_grid(self):
         for y in range(self.height):
             fila = []
