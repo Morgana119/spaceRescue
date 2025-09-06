@@ -35,6 +35,8 @@ import time
 import datetime
 import random
 
+from pathfinder import Pathfinder
+
 class Cell:
     def __init__(self, x, y, walls):
         self.x = x
@@ -44,12 +46,13 @@ class Cell:
         self.fire = False
         self.hasToken = False
         self.smoke = False
+        self.isExit = False
 
 class RobotAgent(Agent):
-    def __init__(self, model):
+    def __init__(self,name, model):
         super().__init__(model)
-        self.idRobot = self.unique_id    # Mesa ya lo define 
-        self.rolRobot = 0                # 0 -> apagaFuegos | 1 -> salvaVidas
+        self.idRobot = name 
+        self.rolRobot = 0  # 0 -> apagaFuegos | 1 -> salvaVidas
         self.actionPoints = 4
         self.partner = None
         self.positionX = 0
@@ -57,6 +60,7 @@ class RobotAgent(Agent):
         self.savedVictims = 0
         self.health = 1
         self.carriesPOI = False
+        self.pathfinder = Pathfinder(self)
 
     def neighborCoords(self, d):
         # Calcula las coordenadas de la celda vecina en la dirección d
@@ -84,11 +88,13 @@ class RobotAgent(Agent):
             return False
         dest = self.model.grid[ny][nx]
         if dest.fire and self.carriesPOI:
+            print("Va cargando poi o hay fuego", dest.walls[d])
             return False
 
         # costo: 2 si es fuego, 2 si lleva POI, sino 1
         cost = 2 if dest.fire or self.carriesPOI else 1
         if self.actionPoints < cost: 
+            print("action points no completos")
             return False
 
         self.model.agentsGrid.move_agent(self, (nx, ny))
@@ -101,7 +107,7 @@ class RobotAgent(Agent):
             self.carriesPOI = True
             print(f"[Agente {self.idRobot}] AUTO_REVEAL_POI en {(nx, ny)}")
 
-        print(f"[Agente {self.idRobot}] MOVE a {(nx, ny)} cost={cost}, AP={self.actionPoints}")
+        print(f"[Agente {self.idRobot}] MOVE a {(ny, nx)} cost={cost}, AP={self.actionPoints}")
         return True
 
     # Abrir puerta si wall == 3 (actualizar vecino opuesto y poner 0)
@@ -251,14 +257,55 @@ class RobotAgent(Agent):
 
     # def meetPartner(self):
     
-    # def saveVictim(self):
+    def saveVictim(self):
+        print(self.idRobot, " ENTRO AL SAVE VICTIM")
+        if not self.carriesPOI:
+            print(f"[Agente {self.idRobot}] No lleva víctima, no va a la salida")
+            return
+        
+        pathfinder = Pathfinder(self)
+        path, exit = pathfinder.closestExit()
+        print("Path:_", path)
+        print("EXIT: ", exit)
+        path = [pos for pos, _ in path]
+
+        if not path or len(path) == 0:
+            print(f"[Agente {self.idRobot}] No hay camino a la salida")
+            return
+        
+        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+
+        if self.positionY == exit[0] and self.positionX == exit[1]:
+            self.carriesPOI = False
+            print("Carries POI to false")
+        
+        for i in range(len(path)):
+            next_y, next_x = path[i]
+            # solo moverse si es vecino
+            moved = False
+            for d, (dy, dx) in enumerate(dirs):
+                # PARA PROBAR EL SAVE VICTIMS SE RESTABLECE SUS AP A 4 
+                if self.actionPoints <= 0: self.actionPoints = 4
+                if self.positionY + dy == next_y and self.positionX + dx == next_x:
+                    moved = self.move(d)
+                    print("Move: ", moved)
+                    break
+            if not moved:
+                print("No se pudo mover a", (next_y, next_x))
+                break
 
     # def damaged(self):
 
     def step(self):
         # Reinicia PA y ejecuta hasta agotarlos
         self.actionPoints = 4
-        self.actions()
+
+        if self.model.randomStatus:
+            if self.carriesPOI:
+                self.saveVictim()
+            else:
+                self.actions()
+        
 
 class ExplorerModel(Model):
     def __init__(self,agent_names, width = 10, height = 8, numRobots = 6):
@@ -294,9 +341,19 @@ class ExplorerModel(Model):
             ["0100","0011","0010","0000","0010","0310","0013","0310","0113","0001"],
             ["0000","1000","1000","1000","1000","1000","1000","1000","1000","1000"]
         ]
+        gridValues2 = [
+            ["0000","0010","0010","0010","0010","0010","0000","0010","0010","0000"],
+            ["0100","1001","1000","1000","1000","1100","0001","1000","1100","0001"],
+            ["0100","0001","0000","0110","0011","0010","0010","0010","0100","0001"],
+            ["0000","0000","0000","1000","1000","1000","1100","1001","0100","0000"],
+            ["0100","0011","0110","0011","0000","0010","0010","0010","0010","0000"],
+            ["0100","1001","1000","1000","0000","1100","1001","1100","1101","0001"],
+            ["0100","0011","0010","0000","0010","0010","0010","0010","0110","0001"],
+            ["0000","1000","1000","0000","1000","1000","1000","1000","1000","1000"]
+        ]
 
         self.grid = [
-                [Cell(x, y, walls=[int(d) for d in gridValues[y][x]])
+                [Cell(x, y, walls=[int(d) for d in gridValues2[y][x]])
                 for x in range(self.width)]
                 for y in range(self.height)
             ]
@@ -306,12 +363,17 @@ class ExplorerModel(Model):
         for x, y in firePositions:
             self.grid[y][x].fire = True
         print(f"[INIT] Fuego inicial en: {firePositions}")
+        
+        self.exitPositions = [(1,6), (3,1), (6,3), (4,8)]
+        for y, x in self.exitPositions:
+            self.grid[y][x].isExit = True
+        print(f"[INIT] Puertas inicial en: {self.exitPositions}")
 
         # Crear agentes
         self.agents_list = []
         self.current_turn = 0
         for i in range(self.numRobots):
-            a = RobotAgent(self)
+            a = RobotAgent(agent_names[i], self)
             self.schedule.add(a)
             self.agents_list.append(a)
 
@@ -323,8 +385,9 @@ class ExplorerModel(Model):
                 if self.agentsGrid.is_cell_empty( (x, y) ) and self.grid[y][x].fire == False:
                     self.agentsGrid.place_agent(agent, (x, y))
                     agent.positionX, agent.positionY = x, y
-                    print(f"[INIT] Agente {agent.idRobot} colocado en {(x, y)}")
+                    print(f"[INIT] Agente {agent.idRobot} colocado en {(y, x)}")
                     break
+                
                     
     # Definir parejas -> model.assignPairs
     def assignPairs(self):
@@ -494,16 +557,6 @@ class ExplorerModel(Model):
                     self.updateNeighbors(x, y, i, 0)
                     self.grid[y][x].walls[i] = 0
     
-    def step(self):
-        agent = self.myAgents[self.current_turn]
-        agent.move(self.width, self.height)
-        self.current_turn = (self.current_turn + 1) % len(self.myAgents)
-        self.newFire = []
-        self.newSmoke = []
-        x,y = self.RollDice()
-        self.spreadFire(x, y)
-        self.updateSmoke()
-    
     def print_grid(self):
         for y in range(self.height):
             fila = []
@@ -527,16 +580,61 @@ def gridArray(model):
                 arr[y][x] = 2
     return arr
 
-allGrids = []
+# allGrids = []
 agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 model = ExplorerModel(agent_names)
+# model.print_grid()
+# print("----------------------")
+# while model.currentStep < 1:
+#     model.step()
+#     allGrids.append(gridArray(model))
+#     model.currentStep += 1 
+# model.print_grid()
+allGrids = []
+num_steps = 2  # cuántos pasos quieres simular desde el estado actual
+
+print("Estado inicial del tablero:")
 model.print_grid()
 print("----------------------")
-while model.currentStep < 1:
-    model.step()
-    allGrids.append(gridArray(model))
-    model.currentStep += 1 
-model.print_grid()
+
+# for agent in model.agents:
+#     agent.carriesPOI = True
+#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+
+# Elegir un agente y darle un POI
+agent = model.agents[0]
+print("Pos inicial: ", agent.positionY, agent.positionX )
+agent.carriesPOI = True
+print(f"\n[Prueba] Agente {agent.idRobot} lleva POI: {agent.carriesPOI}")
+
+# Llamar directamente a saveVictim
+agent.saveVictim()
+
+print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+      f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+
+
+
+# ------------- PRUEBA A* PARA 1 AGENTE ----------------------
+# agent = model.agents[0]  # tomar un agente cualquiera
+# agent.carriesPOI = False
+# agent.model.randomStatus = True  # activar modo aleatorio
+# # Definir un objetivo cualquiera (por ejemplo la salida más cercana)
+# pathfinder = agent.pathfinder
+# goal = (4,8) # reemplaza con coordenadas reales de la salida
+# path = pathfinder.aStar((agent.positionY, agent.positionX), goal)
+# print("Posición del agente:", agent.positionY, agent.positionX)
+# print("Goal:", goal[0], goal[1])
+
+# if path is None:
+#     print("A* no encontró camino.")
+# else:
+#     print("Path devuelto por A* (modo aleatorio):")
+#     for step in path:
+#         print(step)
+
+
 # fig, axs = plt.subplots(figsize=(5, 5))
 # axs.set_xticks([])
 # axs.set_yticks([])
