@@ -84,7 +84,7 @@ class RobotAgent(Agent):
         self.model.agentsGrid.move_agent(self, (nx, ny))
         self.positionX, self.positionY = nx, ny
         self.actionPoints -= cost
-        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionX, self.positionY))
+        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionY, self.positionX))
 
         # auto-revelar POI si entras en la celda
         if dest.hasToken:
@@ -106,7 +106,7 @@ class RobotAgent(Agent):
         self.model.updateNeighbors(x, y, d, 0)
         self.model.grid[y][x].walls[d] = 0
         self.actionPoints -= 1
-        self.model.actionsLog.append(('agent', self.idRobot, 'openDoor', x, y, d))
+        self.model.actionsLog.append(('agent', self.idRobot, 'openDoor', y, x, d))
         print(f"[Agente {self.idRobot}] OPEN_DOOR dir={d}, AP={self.actionPoints}")
         return True  
     
@@ -125,7 +125,7 @@ class RobotAgent(Agent):
                 return False
             dest.smoke = False
             self.actionPoints -= 1
-            self.model.actionsLog.append(('agent', self.idRobot, 'stopSmoke', nx, ny))
+            self.model.actionsLog.append(('agent', self.idRobot, 'stopSmoke', ny, nx))
             print(f"[Agente {self.idRobot}] STOP_SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -136,7 +136,7 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = True
             self.actionPoints -= 1
-            self.model.actionsLog.append(('agent', self.idRobot, 'fireToSmoke', nx, ny))
+            self.model.actionsLog.append(('agent', self.idRobot, 'fireToSmoke', ny, nx))
             print(f"[Agente {self.idRobot}] EXTINGUISH_FIRE→SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
         return False  
@@ -153,7 +153,7 @@ class RobotAgent(Agent):
             cell.fire = False
             cell.smoke = False
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', self.positionX, self.positionY))
+            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', self.positionY, self.positionX))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en propia {(self.positionX, self.positionY)}, AP={self.actionPoints}")
             return True
         else:
@@ -168,7 +168,7 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = False
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', nx, ny))
+            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', ny, nx))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -194,7 +194,7 @@ class RobotAgent(Agent):
             self.model.grid[y][x].walls[d] = 2
             self.model.damagedWalls += 1
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'weakenWall', x, y, d))
+            self.model.actionsLog.append(('agent', self.idRobot, 'weakenWall', y, x, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (debilitar 1→2) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
 
@@ -205,7 +205,7 @@ class RobotAgent(Agent):
             self.model.grid[y][x].walls[d] = 0
             self.model.damagedWalls += 1
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'breakWall', x, y, d))
+            self.model.actionsLog.append(('agent', self.idRobot, 'breakWall', y, x, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (romper 2→0) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
             

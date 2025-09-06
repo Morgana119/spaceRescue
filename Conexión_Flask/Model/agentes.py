@@ -35,7 +35,7 @@ import time
 import datetime
 import random
 
-from agentClass import RobotAgent
+from .agentClass import RobotAgent
 
 class Cell:
     def __init__(self, x, y, walls):
@@ -149,38 +149,18 @@ class ExplorerModel(Model):
                 a2 = self.agentList[i + 1]
                 a1.partner = a2.unique_id
                 a2.partner = a1.unique_id
-    
-    def print_grid(self):
-        for y in range(self.height):
-            fila = []
-            for x in range(self.width):
-                walls_str = "".join(map(str, self.grid[y][x].walls))
-                if self.grid[y][x].fire:
-                    walls_str += "F"
-                fila.append(walls_str)
-            print(fila)
-    
-    def print_grid(self):
-        for y in range(self.height):
-            fila = []
-            for x in range(self.width):
-                walls_str = "".join(map(str, self.grid[y][x].walls))
-                if self.grid[y][x].fire:
-                    walls_str += "F"
-                fila.append(walls_str)
-            print(fila)
 
     def step(self):
-        if not self.agents_list:
+        if not self.agentsList:
             return
 
         # agente del turno actual
-        agent = self.agents_list[self.current_turn]
+        agent = self.agentsList[self.current_turn]
         print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
         agent.step()  # este agente gasta hasta 4 PA en su propio step()
 
         # avanza el turno de forma cíclica
-        self.current_turn = (self.current_turn + 1) % len(self.agents_list)
+        self.current_turn = (self.current_turn + 1) % len(self.agentsList)
 
         # dinámica de fuego
         x, y = self.RollDice()
@@ -189,14 +169,32 @@ class ExplorerModel(Model):
         # pongo un agente de prueba
     
     def get_full_state(self):
-        changes_list = [
-            {"type": change.type, "x": change.pos[0], "y": change.pos[1]}
-            for change in self.changes
-        ]
+        actions_list = []
+        for act in self.actionsLog:
+            entry = {"source": act[0]}
+            if act[1] == "ignite":
+                entry.update({"action": "ignite", "x": act[2], "y": act[3]})
+            elif act[1] == "smoke":
+                entry.update({"action": "smoke", "x": act[2], "y": act[3]})
+            elif act[1] == "dice":
+                entry.update({"action": "dice", "x": act[2], "y": act[3]})
+            elif act[1] == "poiPlaced":
+                entry.update({"action": "poiPlaced", "x": act[2], "y": act[3]})
+            elif act[1] == "poiReveal":
+                entry.update({"action": "poiReveal", "x": act[2], "y": act[3], "kind": act[4]})
+            elif act[1] == "knockdown":
+                entry.update({"action": "knockdown", "agent": act[2], "x": act[3], "y": act[4]})
+            else:
+                entry.update({"action": act[1], "data": act[2:]})
+            actions_list.append(entry)
 
-        return {
-            "changes": changes_list
-        }
+        state = {"actions": actions_list}
+
+        # limpiar después de mandar
+        self.actionsLog = []
+
+        return state
+
 
     def RollDice(self,):
         x = random.randint(1, self.width - 2)
@@ -219,9 +217,9 @@ class ExplorerModel(Model):
                 self.grid[ny][nx].fire = True
                 print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dirección {coordinate} desde {(x, y)}")
                 fire = (y, x)
-                self.changes.append(GridChange("fire", x, y))
+                self.changes.append(GridChange("fire", y, x))
                 self.newlyIgnited.add((nx, ny))
-                self.actionsLog.append(('model', 'ignite', nx, ny))
+                self.actionsLog.append(('model', 'ignite', ny, nx))
                 break
 
             ny += dy
@@ -238,8 +236,8 @@ class ExplorerModel(Model):
                             if self.grid[ny][nx].fire == True: 
                                 self.grid[y][x].fire = True
                                 self.grid[y][x].smoke = False
-                                self.changes.append(GridChange("fire", x, y))
-                                self.actionsLog.append(('model', 'ignite', nx, ny))
+                                self.changes.append(GridChange("fire", y, x))
+                                self.actionsLog.append(('model', 'ignite', ny, nx))
                                 break
 
     def updateNeighbors(self, x, y, coordinate, newStatus):
@@ -264,14 +262,14 @@ class ExplorerModel(Model):
         if self.grid[y][x].fire == False and self.grid[y][x].smoke == False:
             self.grid[y][x].smoke = True
             smoke = (y, x)
-            self.actionsLog.append(('model', 'smoke', x, y))
+            self.actionsLog.append(('model', 'smoke', y, x))
             self.changes.append(GridChange("smoke", x, y))
         elif self.grid[y][x].fire == False and self.grid[y][x].smoke == True:
             self.grid[y][x].smoke = False
             self.grid[y][x].fire = True
             fire = (y, x)
             self.newlyIgnited.add((x, y))
-            self.actionsLog.append(('model', 'ignite', x, y))
+            self.actionsLog.append(('model', 'ignite', y, x))
             self.changes.append(GridChange("fire", x, y))
 
 
@@ -363,7 +361,7 @@ class ExplorerModel(Model):
         cell.hasToken = True
         cell.poiHidden = card
         self.poisOnBoard.add((x, y))
-        self.actionsLog.append(('model', 'poiPlaced', x, y))
+        self.actionsLog.append(('model', 'poiPlaced', y, x))
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
         return True
 
@@ -398,7 +396,7 @@ class ExplorerModel(Model):
         else:
             print(f"[POI|REVEAL] FALSA ALARMA en {(x, y)}")
         
-        self.actionsLog.append(('model', 'poiReveal', x, y, kind))  # kind: 'V' o 'F'
+        self.actionsLog.append(('model', 'poiReveal', y, x, kind))  # kind: 'V' o 'F'
         # Reponer hasta 3 por dados
         self.ensure3POI()
     
@@ -407,7 +405,7 @@ class ExplorerModel(Model):
     # def teleportTo():
         
     def knockdown(self, agent):
-        self.actionsLog.append(('model', 'knockdown', agent.idRobot, agent.positionX, agent.positionY))
+        self.actionsLog.append(('model', 'knockdown', agent.idRobot, agent.positionY, agent.positionX))
 
         # Si llevaba víctima, se pierde
         if agent.carriesPOI:
@@ -506,16 +504,17 @@ def gridArray(model):
                 arr[y][x] = 2
     return arr
 
-allGrids = []
-agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
-model = ExplorerModel(agent_names)
-model.print_grid()
-print("----------------------")
-while model.currentStep < 1:
-    model.step()
-    allGrids.append(gridArray(model))
-    model.currentStep += 1 
-model.print_grid()
+# allGrids = []
+# agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+# model = ExplorerModel(agent_names)
+# model.print_grid()
+# print("----------------------")
+# while model.currentStep < 1:
+#     model.step()
+#     allGrids.append(gridArray(model))
+#     model.currentStep += 1 
+# model.print_grid()
+# print(model.get_full_state())
 # fig, axs = plt.subplots(figsize=(5, 5))
 # axs.set_xticks([])
 # axs.set_yticks([])
