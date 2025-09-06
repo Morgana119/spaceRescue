@@ -81,6 +81,7 @@ class RobotAgent(Agent):
     
     # Moverse si wall == 0, se puede mover sobre fuego, a menos que esté cargando un POI
     def move(self, d):
+        print("Entro AL MOVE")
         x, y, nx, ny = self.neighborCoords(d)
         if not self.insideGrid(ny, nx): 
             return False
@@ -103,6 +104,7 @@ class RobotAgent(Agent):
 
         # auto-revelar POI si entras en la celda
         if dest.hasToken:
+            print("Entro al hasToken", dest)
             dest.hasToken = False
             self.carriesPOI = True
             print(f"[Agente {self.idRobot}] AUTO_REVEAL_POI en {(nx, ny)}")
@@ -274,10 +276,6 @@ class RobotAgent(Agent):
             return
         
         dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
-
-        if self.positionY == exit[0] and self.positionX == exit[1]:
-            self.carriesPOI = False
-            print("Carries POI to false")
         
         for i in range(len(path)):
             next_y, next_x = path[i]
@@ -285,16 +283,24 @@ class RobotAgent(Agent):
             moved = False
             for d, (dy, dx) in enumerate(dirs):
                 # PARA PROBAR EL SAVE VICTIMS SE RESTABLECE SUS AP A 4 
-                if self.actionPoints <= 0: self.actionPoints = 4
+                #if self.actionPoints <= 0: self.actionPoints = 4
+                
                 if self.positionY + dy == next_y and self.positionX + dx == next_x:
                     moved = self.move(d)
                     print("Move: ", moved)
+                    if self.positionY == exit[0] and self.positionX == exit[1]:
+                        self.carriesPOI = False
+                        self.savedVictims += 1
+                        print("Carries POI to false")   
+
                     break
             if not moved:
                 print("No se pudo mover a", (next_y, next_x))
                 break
 
     # def damaged(self):
+
+    #def estrategieActions(self):
 
     def step(self):
         # Reinicia PA y ejecuta hasta agotarlos
@@ -305,7 +311,6 @@ class RobotAgent(Agent):
                 self.saveVictim()
             else:
                 self.actions()
-        
 
 class ExplorerModel(Model):
     def __init__(self,agent_names, width = 10, height = 8, numRobots = 6):
@@ -364,7 +369,7 @@ class ExplorerModel(Model):
             self.grid[y][x].fire = True
         print(f"[INIT] Fuego inicial en: {firePositions}")
         
-        self.exitPositions = [(1,6), (3,1), (6,3), (4,8)]
+        self.exitPositions = [(0,6), (3,0), (7,3), (4,9)]
         for y, x in self.exitPositions:
             self.grid[y][x].isExit = True
         print(f"[INIT] Puertas inicial en: {self.exitPositions}")
@@ -414,6 +419,7 @@ class ExplorerModel(Model):
 
         # agente del turno actual
         agent = self.agents_list[self.current_turn]
+        print("---------------------------------------------------------------------------------------------------")
         print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
         agent.step()  # este agente gasta hasta 4 PA en su propio step()
 
@@ -580,41 +586,33 @@ def gridArray(model):
                 arr[y][x] = 2
     return arr
 
-# allGrids = []
+
 agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 model = ExplorerModel(agent_names)
-# model.print_grid()
-# print("----------------------")
-# while model.currentStep < 1:
-#     model.step()
-#     allGrids.append(gridArray(model))
-#     model.currentStep += 1 
-# model.print_grid()
+#model.randomStatus = False
 allGrids = []
-num_steps = 2  # cuántos pasos quieres simular desde el estado actual
+num_steps = 7  # cuántos pasos quieres simular desde el estado actual
+model.print_grid()
+print("----------------------")
+
+for agent in model.agents:
+    agent.carriesPOI = False
+    print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+          f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+
+while model.currentStep < num_steps:
+    model.step()
+    allGrids.append(gridArray(model))
+    model.currentStep += 1 
+model.print_grid()
 
 print("Estado inicial del tablero:")
 model.print_grid()
 print("----------------------")
 
-# for agent in model.agents:
-#     agent.carriesPOI = True
-#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
-#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
-
-# Elegir un agente y darle un POI
-agent = model.agents[0]
-print("Pos inicial: ", agent.positionY, agent.positionX )
-agent.carriesPOI = True
-print(f"\n[Prueba] Agente {agent.idRobot} lleva POI: {agent.carriesPOI}")
-
-# Llamar directamente a saveVictim
-agent.saveVictim()
-
-print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
-      f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
-
-
+for agent in model.agents:
+    print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+          f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
 
 # ------------- PRUEBA A* PARA 1 AGENTE ----------------------
 # agent = model.agents[0]  # tomar un agente cualquiera

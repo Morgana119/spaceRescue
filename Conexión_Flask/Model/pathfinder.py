@@ -77,9 +77,9 @@ class Pathfinder:
                     path.append((currentNode, action))
                     currentNode = parent
                 path.reverse()
-                print("Path: ", path, flush=True)
-                print("desde: ", start, flush=True)
-                print("Hacia", goal, flush=True)
+                #print("Path: ", path, flush=True)
+                #print("desde: ", start, flush=True)
+                #print("Hacia", goal, flush=True)
                 return path
 
             best_priority = float('inf')
@@ -139,6 +139,7 @@ class Pathfinder:
         return None       
     
     def closestExit(self):
+        print(self.agent.idRobot,"Entro al closes Exit", flush=True)
         exits = self.agent.model.exitPositions
         print("Exits: ", exits)
         min_path = None
@@ -154,9 +155,9 @@ class Pathfinder:
                     exit_final = exitPos
                     min_path = path
         
-        print("min path: ", min_path, flush=True)
-        print("exit: ", exit_final)
+        print("MIN PATH: ", min_path, "desde", self.agent.positionY, self.agent.positionX, "hasta:", exit, flush=True)
         return min_path, exit_final
 
     ## Encontrar un POI
-    # def closestPOI(self):
+    #def closestPOI(self):
+
