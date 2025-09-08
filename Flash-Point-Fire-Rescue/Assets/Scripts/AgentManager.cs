@@ -1,6 +1,11 @@
-// using UnityEngine; // Necesario para MonoBehaviour y componentes de Unity
-// using System.Collections; // Para poder usar corrutinas (IEnumerator)
-// using System.Collections.Generic; // Para trabajar con diccionarios
+using UnityEngine; // Necesario para MonoBehaviour y componentes de Unity
+using System.Collections; // Para poder usar corrutinas (IEnumerator)
+using System.Collections.Generic; // Para trabajar con diccionarios
+
+public class AgentManager : MonoBehaviour
+{
+
+}
 
 // public class MoveAgent : MonoBehaviour
 // {
