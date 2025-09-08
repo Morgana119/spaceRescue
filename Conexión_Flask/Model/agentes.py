@@ -283,7 +283,7 @@ class RobotAgent(Agent):
             moved = False
             for d, (dy, dx) in enumerate(dirs):
                 # PARA PROBAR EL SAVE VICTIMS SE RESTABLECE SUS AP A 4 
-                #if self.actionPoints <= 0: self.actionPoints = 4
+                if self.actionPoints <= 0: self.actionPoints = 4
                 
                 if self.positionY + dy == next_y and self.positionX + dx == next_x:
                     moved = self.move(d)
@@ -420,7 +420,7 @@ class ExplorerModel(Model):
         # agente del turno actual
         agent = self.agents_list[self.current_turn]
         print("---------------------------------------------------------------------------------------------------")
-        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
+        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionY, agent.positionX)}")
         agent.step()  # este agente gasta hasta 4 PA en su propio step()
 
         # avanza el turno de forma cíclica
@@ -591,14 +591,17 @@ agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 model = ExplorerModel(agent_names)
 #model.randomStatus = False
 allGrids = []
-num_steps = 7  # cuántos pasos quieres simular desde el estado actual
+num_steps = 10  # cuántos pasos quieres simular desde el estado actual
 model.print_grid()
 print("----------------------")
 
-for agent in model.agents:
-    agent.carriesPOI = False
-    print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
-          f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+# for agent in model.agents:
+#     agent.carriesPOI = False
+#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+
+model.agents[0].carriesPOI = True
+model.agents[1].carriesPOI = True
 
 while model.currentStep < num_steps:
     model.step()
@@ -639,7 +642,6 @@ for agent in model.agents:
 
 # # Definir colores: 0=blanco, 1=rojo (fuego), 2=gris (humo)
 # cmap = ListedColormap(['white', 'red', 'gray'])
-
 # # Margen visual entre celdas
 # margin = 0.5
 # height, width = allGrids[0].shape

@@ -77,9 +77,6 @@ class Pathfinder:
                     path.append((currentNode, action))
                     currentNode = parent
                 path.reverse()
-                #print("Path: ", path, flush=True)
-                #print("desde: ", start, flush=True)
-                #print("Hacia", goal, flush=True)
                 return path
 
             best_priority = float('inf')
@@ -96,9 +93,7 @@ class Pathfinder:
                 if self.agent.model.randomStatus: 
                     # Para comportamiento aleatorio, solo usamos costo directo
                     if self.agent.rolRobot == 1: 
-                        #print("Rol: ", self.agent.rolRobot)
                         cost = 2 if cell.fire or self.agent.carriesPOI else 1
-                        #print("Costo: ", cost)
                         best_action = 'moverse'
                 else:
                     # Aquí sigue la lógica de prioridad y costo real según rol
@@ -125,23 +120,18 @@ class Pathfinder:
                     cost = bestcost
 
                 tentativeG = gScore[currentNode] + cost
-                #print("Tentative cost: ", tentativeG, flush=True)
 
                 if neighbor not in gScore or tentativeG < gScore[neighbor]:
                     gScore[neighbor] = tentativeG
                     fScore = tentativeG + self.heuristic(neighbor, goal)
-                    #print("F: ", fScore, "N:", neighbor, flush=True)
                     heappush(openSet, (fScore, neighbor))
                     #print(f"Expand {currentNode} -> {neighbor}, acción={best_action}, g={tentativeG}, h={self.heuristic(neighbor, goal)}, f={fScore}", flush=True)
                     cameFrom[neighbor] = (currentNode, best_action) 
-        print("Path no encontrado desde", start, "hasta", goal, flush=True)
-        print("CameFrom parcial:", cameFrom, flush=True)
         return None       
     
     def closestExit(self):
         print(self.agent.idRobot,"Entro al closes Exit", flush=True)
         exits = self.agent.model.exitPositions
-        print("Exits: ", exits)
         min_path = None
         exit_final = None
 
@@ -149,13 +139,12 @@ class Pathfinder:
             path = self.aStar((self.agent.positionY, self.agent.positionX), exitPos)
             if path:
                 if path[0][0] == self.agent.positionY and path[0][1] == self.agent.positionY: # SI EL AGENTE ESTA EN LA POSICION
-                    print("Already in the exit")
                     break
                 elif min_path is None or len(path) < len(min_path):
                     exit_final = exitPos
                     min_path = path
         
-        print("MIN PATH: ", min_path, "desde", self.agent.positionY, self.agent.positionX, "hasta:", exit, flush=True)
+        print("MIN PATH: ", min_path, "desde", self.agent.positionY, self.agent.positionX, "hasta:", exit_final, flush=True)
         return min_path, exit_final
 
     ## Encontrar un POI
