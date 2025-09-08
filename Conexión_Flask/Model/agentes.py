@@ -47,14 +47,9 @@ class Cell:
         self.fire = False
         self.hasToken = False
         self.smoke = False
-        self.poiHidden = None   # 'V' o 'F' si hay POI oculto
-class GridChange:
-    def __init__(self, change_type, x, y):
-        self.type = change_type 
-        self.pos = (x, y)        
+        self.poiHidden = None # 'V' o 'F' si hay POI oculto
+        self.isExit = False  
 
-    def __repr__(self):
-        return f"GridChange(type={self.type}, pos={self.pos})"
 class ExplorerModel(Model):
     def __init__(self,agent_names, width = 10, height = 8, numRobots = 6):
         super().__init__()
@@ -76,7 +71,7 @@ class ExplorerModel(Model):
         self.maxDeadVictims = 4       # pierde si llega aquí
         self.victimsToSave = 7        # gana si llega aquí
         
-        self.ambulanceSpots = [(0, 0), (self.width - 1, self.height - 1)]
+        self.ambulanceSpots = [(0, 0), (5, 0), (6, 0), (9, 3), (9, 4), (0, 3), (0, 4), (3, 7), (4, 7)]
         self.newlyIgnited = set()  # {(x, y)} casillas que pasaron a fuego en el turno
 
         self.actionsLog = []
@@ -97,9 +92,19 @@ class ExplorerModel(Model):
             ["0100","0011","0010","0000","0010","0310","0013","0310","0113","0001"],
             ["0000","1000","1000","1000","1000","1000","1000","1000","1000","1000"]
         ]
+        gridValues2 = [
+            ["0000","0010","0010","0010","0010","0010","0000","0010","0010","0000"],
+            ["0100","1001","1000","1000","1000","1100","0001","1000","1100","0001"],
+            ["0100","0001","0000","0110","0011","0010","0010","0010","0100","0001"],
+            ["0000","0000","0000","1000","1000","1000","1100","1001","0100","0000"],
+            ["0100","0011","0110","0011","0000","0010","0010","0010","0010","0000"],
+            ["0100","1001","1000","1000","0000","1100","1001","1100","1101","0001"],
+            ["0100","0011","0010","0000","0010","0010","0010","0010","0110","0001"],
+            ["0000","1000","1000","0000","1000","1000","1000","1000","1000","1000"]
+        ]
 
         self.grid = [
-                [Cell(x, y, walls=[int(d) for d in gridValues[y][x]])
+                [Cell(x, y, walls=[int(d) for d in gridValues2[y][x]])
                 for x in range(self.width)]
                 for y in range(self.height)
             ]
@@ -109,6 +114,24 @@ class ExplorerModel(Model):
         for x, y in firePositions:
             self.grid[y][x].fire = True
         print(f"[INIT] Fuego inicial en: {firePositions}")
+        
+        self.exitPositions = [(0,6), (3,0), (7,3), (4,9)]
+        for y, x in self.exitPositions:
+            self.grid[y][x].isExit = True
+        print(f"[INIT] Puertas inicial en: {self.exitPositions}")
+
+        self.poiDeck = ['V'] * 10 + ['F'] * 5
+        self.random.shuffle(self.poiDeck)
+        self.poisOnBoard = set()   # {(x,y)}
+
+        # Iniciales
+        initPOI = [(2, 4), (5, 1), (5, 8)]
+        for (x, y) in initPOI:
+            self.placeNewPOI(x, y, by_dice=False)
+
+        # Si alguna no pudo (fuego, fuera, agente, etc.), rellena por dados hasta llegar a 3
+        self.ensure3POI()
+        print(f"[POI|INIT] POIs en tablero: {sorted(list(self.poisOnBoard))} | mazo={len(self.poiDeck)}")
 
         self.poiDeck = ['V'] * 10 + ['F'] * 5
         self.random.shuffle(self.poiDeck)
@@ -127,47 +150,84 @@ class ExplorerModel(Model):
         self.agentList = []
         self.current_turn = 0
         for i in range(self.numRobots):
-            a = RobotAgent(self)
+            a = RobotAgent(agent_names[i], self)
             self.schedule.add(a)
             self.agentList.append(a)
+        
+        if self.randomStatus: 
+            self.placeRandomAgents()
+        else:
+            self.assignPairs()
 
-        # colocar agentes
+    # Colocar agentes en solucion random
+    def placeRandomAgents(self):
         for agent in self.agentList:
             while True:
-                x = self.random.randrange(self.width)
-                y = self.random.randrange(self.height)
-                if self.agentsGrid.is_cell_empty( (x, y) ) and self.grid[y][x].fire == False:
+                # elegir una casilla de las orillas
+                side = self.random.choice(["top", "bottom", "left", "right"])
+                if side == "top":
+                    x = self.random.randrange(self.width)
+                    y = 0
+                elif side == "bottom":
+                    x = self.random.randrange(self.width)
+                    y = self.height - 1
+                elif side == "left":
+                    x = 0
+                    y = self.random.randrange(self.height)
+                elif side == "right":
+                    x = self.width - 1
+                    y = self.random.randrange(self.height)
+
+                # condiciones: celda vacía y sin fuego
+                if self.agentsGrid.is_cell_empty((x, y)) and not self.grid[y][x].fire:
                     self.agentsGrid.place_agent(agent, (x, y))
                     agent.positionX, agent.positionY = x, y
-                    print(f"[INIT] Agente {agent.idRobot} colocado en {(x, y)}")
+                    print(f"[INIT] Agente {agent.idRobot} colocado en {(x, y)})")
                     break
-                    
+
     # Definir parejas -> model.assignPairs
     def assignPairs(self):
-        for i in range(0, len(self.agentList), 2):
-            if i + 1 < len(self.agentList):
-                a1 = self.agentList[i]
-                a2 = self.agentList[i + 1]
-                a1.partner = a2.unique_id
-                a2.partner = a1.unique_id
+        entrances = [(0,6), (9,4), (3,7), (1,3)]
+        pairs = [(self.agentList[i], self.agentList[i+1]) for i in range(0, len(self.agentList)-1, 2)]
+        chosen = self.random.sample(entrances, k=min(3, len(pairs), len(entrances)))
 
-    def step(self):
-        if not self.agentsList:
-            return
+        for (a1, a2), (ex, ey) in zip(pairs, chosen):
+            # a1 directo en la entrada
+            self.agentsGrid.place_agent(a1, (ex, ey))
+            a1.positionX, a1.positionY = ex, ey
+            print(f"[INIT] {a1.idRobot} en entrada {(ex, ey)}")
 
-        # agente del turno actual
-        agent = self.agentsList[self.current_turn]
-        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
-        agent.step()  # este agente gasta hasta 4 PA en su propio step()
+            # a2 en una orilla adyacente a la entrada
+            placed_pair = False
+            for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+                nx, ny = ex + dx, ey + dy
+                if 0 <= nx < self.width and 0 <= ny < self.height:
+                    if (nx == 0 or ny == 0 or nx == self.width - 1 or ny == self.height - 1):
+                        if self.agentsGrid.is_cell_empty((nx, ny)):
+                            self.agentsGrid.place_agent(a2, (nx, ny))
+                            a2.positionX, a2.positionY = nx, ny
+                            print(f"[INIT] {a2.idRobot} en {(nx, ny)} (pareja de {a1.idRobot})")
+                            placed_pair = True
+                            break
+            # Si no encontró adyacente libre, ponlo en otra entrada libre
+            if not placed_pair:
+                for (fx, fy) in entrances:
+                    if self.agentsGrid.is_cell_empty((fx, fy)):
+                        self.agentsGrid.place_agent(a2, (fx, fy))
+                        a2.positionX, a2.positionY = fx, fy
+                        print(f"[INIT] {a2.idRobot} en {(fx, fy)} (fallback)")
+                        break
 
-        # avanza el turno de forma cíclica
-        self.current_turn = (self.current_turn + 1) % len(self.agentsList)
-
-        # dinámica de fuego
-        x, y = self.RollDice()
-        print(f"[FIRE] Tirada de fuego desde {(x, y)}")
-        self.spreadFire(x, y)
-        # pongo un agente de prueba
+    
+    def print_grid(self):
+        for y in range(self.height):
+            fila = []
+            for x in range(self.width):
+                walls_str = "".join(map(str, self.grid[y][x].walls))
+                if self.grid[y][x].fire:
+                    walls_str += "F"
+                fila.append(walls_str)
+            print(fila)
     
     def get_full_state(self):
         actions_list = []
@@ -217,8 +277,6 @@ class ExplorerModel(Model):
             if not self.grid[ny][nx].fire:
                 self.grid[ny][nx].fire = True
                 print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dirección {coordinate} desde {(x, y)}")
-                fire = (y, x)
-                self.changes.append(GridChange("fire", y, x))
                 self.newlyIgnited.add((nx, ny))
                 self.actionsLog.append(('model', 'ignite', ny, nx))
                 break
@@ -237,11 +295,6 @@ class ExplorerModel(Model):
                             neighbor = self.grid[ny][nx]
                             if self.grid[ny][nx].fire == True: 
                                 initial_ignition_points.add((y, x))
-                                # self.grid[y][x].fire = True
-                                # self.grid[y][x].smoke = False
-                                # self.actionsLog.append(('model', 'stopSmoke', y, x))
-                                # self.actionsLog.append(('model', 'ignite', y, x))
-                                # self.propagateFire(y, x)
         for y, x in initial_ignition_points:
             self.propagateFire(y, x)    
 
@@ -292,7 +345,6 @@ class ExplorerModel(Model):
             self.grid[y][x].smoke = True
             smoke = (y, x)
             self.actionsLog.append(('model', 'smoke', y, x))
-            self.changes.append(GridChange("smoke", x, y))
         elif self.grid[y][x].fire == False and self.grid[y][x].smoke == True:
             self.grid[y][x].smoke = False
             self.grid[y][x].fire = True
@@ -300,7 +352,6 @@ class ExplorerModel(Model):
             self.newlyIgnited.add((x, y))
             self.actionsLog.append(('model', 'stopSmoke', y, x))
             self.actionsLog.append(('model', 'ignite', y, x))
-            self.changes.append(GridChange("fire", x, y))
 
 
         else : # explosion
@@ -426,16 +477,22 @@ class ExplorerModel(Model):
         else:
             print(f"[POI|REVEAL] FALSA ALARMA en {(x, y)}")
         
-        self.actionsLog.append(('model', 'poiReveal', y, x, kind))  # kind: 'V' o 'F'
+        self.actionsLog.append(('model', 'poiReveal', x, y, kind))  # kind: 'V' o 'F'
         # Reponer hasta 3 por dados
         self.ensure3POI()
     
-    # def nearestAmbulance():
-        # MANHATTAN
-    # def teleportTo():
+    # Escoge la ambulancia más cercana por distancia Manhattan
+    def nearestAmbulance(self, x, y):
+        return min(self.ambulanceSpots, key=lambda s: abs(x - s[0]) + abs(y - s[1]))
+    
+    def teleportTo(self, agent, pos):
+        ax, ay = pos
+        self.agentsGrid.move_agent(agent, (ax, ay))
+        agent.positionX, agent.positionY = ax, ay
+        self.actionsLog.append(('model', 'teleport', agent.idRobot, ax, ay))
         
     def knockdown(self, agent):
-        self.actionsLog.append(('model', 'knockdown', agent.idRobot, agent.positionY, agent.positionX))
+        self.actionsLog.append(('model', 'knockdown', agent.idRobot, agent.positionX, agent.positionY))
 
         # Si llevaba víctima, se pierde
         if agent.carriesPOI:
@@ -468,16 +525,6 @@ class ExplorerModel(Model):
             return True, "WIN"
 
         return False, None
-
-    # def step(self):
-    #     agent = self.myAgents[self.current_turn]
-    #     agent.move(self.width, self.height)
-    #     self.current_turn = (self.current_turn + 1) % len(self.myAgents)
-    #     self.newFire = []
-    #     self.newSmoke = []
-    #     x,y = self.RollDice()
-    #     self.spreadFire(x, y)
-    #     self.updateSmoke()
 
     def step(self):
         self.actionsLog = []
@@ -535,24 +582,62 @@ def gridArray(model):
                 arr[y][x] = 2
     return arr
 
-# allGrids = []
-# agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
-# model = ExplorerModel(agent_names)
-# model.print_grid()
-# print("----------------------")
-# while model.currentStep < 1:
-#     model.step()
-#     allGrids.append(gridArray(model))
-#     model.currentStep += 1 
-# model.print_grid()
-# print(model.get_full_state())
+
+agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+model = ExplorerModel(agent_names)
+#model.randomStatus = False
+allGrids = []
+num_steps = 10  # cuántos pasos quieres simular desde el estado actual
+model.print_grid()
+print("----------------------")
+
+# for agent in model.agents:
+#     agent.carriesPOI = False
+#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+
+model.agents[0].carriesPOI = True
+model.agents[1].carriesPOI = True
+
+while model.checkGameOver():
+    model.step()
+    allGrids.append(gridArray(model))
+    model.currentStep += 1 
+model.print_grid()
+
+print("Estado inicial del tablero:")
+model.print_grid()
+print("----------------------")
+
+for agent in model.agents:
+    print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+          f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+
+# ------------- PRUEBA A* PARA 1 AGENTE ----------------------
+# agent = model.agents[0]  # tomar un agente cualquiera
+# agent.carriesPOI = False
+# agent.model.randomStatus = True  # activar modo aleatorio
+# # Definir un objetivo cualquiera (por ejemplo la salida más cercana)
+# pathfinder = agent.pathfinder
+# goal = (4,8) # reemplaza con coordenadas reales de la salida
+# path = pathfinder.aStar((agent.positionY, agent.positionX), goal)
+# print("Posición del agente:", agent.positionY, agent.positionX)
+# print("Goal:", goal[0], goal[1])
+
+# if path is None:
+#     print("A* no encontró camino.")
+# else:
+#     print("Path devuelto por A* (modo aleatorio):")
+#     for step in path:
+#         print(step)
+
+
 # fig, axs = plt.subplots(figsize=(5, 5))
 # axs.set_xticks([])
 # axs.set_yticks([])
 
 # # Definir colores: 0=blanco, 1=rojo (fuego), 2=gris (humo)
 # cmap = ListedColormap(['white', 'red', 'gray'])
-
 # # Margen visual entre celdas
 # margin = 0.5
 # height, width = allGrids[0].shape

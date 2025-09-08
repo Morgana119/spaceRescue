@@ -3,7 +3,6 @@ using UnityEngine.Networking;
 using System.Collections;
 using System.Linq;
 
-// Estructuras para el nuevo formato de datos
 [System.Serializable]
 public class ActionPayload
 {
@@ -11,7 +10,6 @@ public class ActionPayload
     public string action;
     public int x;
     public int y;
-    // La propiedad 'data' se puede omitir si no se necesita en C#
 }
 
 [System.Serializable]
