@@ -131,16 +131,20 @@ class Pathfinder:
     
     def closestExit(self):
         print(self.agent.idRobot,"Entro al closes Exit", flush=True)
+        print("PUNTOS DE ACCION ",self.agent.actionPoints)
         exits = self.agent.model.exitPositions
+
+        if (self.agent.positionY, self.agent.positionX) in exits:
+            print(f"Agente {self.agent.idRobot} YA ESTÁ en una salida -> no busca más")
+            return None, (self.agent.positionY, self.agent.positionX)
+        
         min_path = None
         exit_final = None
 
         for exitPos in exits:
             path = self.aStar((self.agent.positionY, self.agent.positionX), exitPos)
             if path:
-                if path[0][0] == self.agent.positionY and path[0][1] == self.agent.positionY: # SI EL AGENTE ESTA EN LA POSICION
-                    break
-                elif min_path is None or len(path) < len(min_path):
+                if  min_path is None or len(path) < len(min_path):
                     exit_final = exitPos
                     min_path = path
         
@@ -148,5 +152,5 @@ class Pathfinder:
         return min_path, exit_final
 
     ## Encontrar un POI
-    #def closestPOI(self):
+    # def closestPOI(self):
 

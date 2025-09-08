@@ -426,6 +426,7 @@ class ExplorerModel(Model):
     
     # Se llama cuando el agente entra a la celda (x,y) con un POI
     def revealPOI(self, x, y, agent):
+        print("ENTRO A REVEAL POI --------------------------------------------------------")
         cell = self.grid[y][x]
         if not cell.hasToken:
             return
@@ -439,7 +440,7 @@ class ExplorerModel(Model):
         if kind == 'V':
             agent.carriesPOI = True
             agent.rolRobot = 1
-            agent.savedVictims()
+            agent.saveVictim()
             print(f"[POI|REVEAL] VÍCTIMA en {(x, y)} → {agent.idRobot} ahora la transporta")
         else:
             print(f"[POI|REVEAL] FALSA ALARMA en {(x, y)}")
@@ -479,19 +480,19 @@ class ExplorerModel(Model):
         # Colapso edificio
         if self.damagedWalls >= self.maxDamagedWalls:
             print("[GAME OVER] El edificio colapsó")
-            return True, "LOSE"
+            return False, "LOSE"
 
         # Demasiadas víctimas muertas
         if self.deadVictims >= self.maxDeadVictims:
             print("[GAME OVER] Han muerto 4 víctimas")
-            return True, "LOSE"
+            return False, "LOSE"
 
         # Suficientes víctimas rescatadas
         if self.savedVictims >= self.victimsToSave:
             print("[VICTORY] Se rescataron 7 víctimas")
-            return True, "WIN"
+            return False, "WIN"
 
-        return False, None
+        return True, None
 
     def step(self):
         self.actionsLog = []
@@ -501,7 +502,7 @@ class ExplorerModel(Model):
 
         # agente del turno actual
         agent = self.agentList[self.current_turn]
-        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
+        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionY, agent.positionX)}")
 
         agent.step()  # este agente gasta hasta 4 PA en su propio step()
 
@@ -554,7 +555,7 @@ agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 model = ExplorerModel(agent_names)
 #model.randomStatus = False
 allGrids = []
-num_steps = 10  # cuántos pasos quieres simular desde el estado actual
+num_steps = 40  # cuántos pasos quieres simular desde el estado actual
 model.print_grid()
 print("----------------------")
 
@@ -563,10 +564,7 @@ print("----------------------")
 #     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
 #           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
 
-model.agents[0].carriesPOI = True
-model.agents[1].carriesPOI = True
-
-while model.checkGameOver():
+while model.currentStep < num_steps:
     model.step()
     allGrids.append(gridArray(model))
     model.currentStep += 1 
