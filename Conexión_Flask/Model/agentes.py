@@ -69,7 +69,7 @@ class ExplorerModel(Model):
         self.maxDamagedWalls = 24     # pierde si llega aquí
         self.maxDeadVictims = 4       # pierde si llega aquí
         self.victimsToSave = 7        # gana si llega aquí
-        
+
         self.ambulanceSpots = [(0, 0), (5, 0), (6, 0), (9, 3), (9, 4), (0, 3), (0, 4), (3, 7), (4, 7)]
         self.newlyIgnited = set()  # {(x, y)} casillas que pasaron a fuego en el turno
 
@@ -99,23 +99,23 @@ class ExplorerModel(Model):
             ]
 
         # Se llena el grid de fuego con posiciones iniciales
-        firePositions = [(2, 2), (2, 3), (3, 2), (4, 3), (3, 3), (5, 3), (4, 4), (6, 5), (7, 5), (6, 6) ]
+        firePositions = [(2, 2), (2, 3), (3, 2), (4, 3), (3, 3), (5, 3), (4, 4), (6, 5), (7, 5), (6, 6)]
         for x, y in firePositions:
             self.grid[y][x].fire = True
         print(f"[INIT] Fuego inicial en: {firePositions}")
 
         self.poiDeck = ['V'] * 10 + ['F'] * 5
         self.random.shuffle(self.poiDeck)
-        self.poisOnBoard = set()   # {(x,y)}
+        self.poiPositions = [] 
 
         # Iniciales
-        initPOI = [(2, 4), (5, 1), (5, 8)]
-        for (x, y) in initPOI:
+        posPOIS = [(2, 4), (5, 1), (5, 8)]
+        for (x, y) in posPOIS:
             self.placeNewPOI(x, y, by_dice=False)
 
         # Si alguna no pudo (fuego, fuera, agente, etc.), rellena por dados hasta llegar a 3
         self.ensure3POI()
-        print(f"[POI|INIT] POIs en tablero: {sorted(list(self.poisOnBoard))} | mazo={len(self.poiDeck)}")
+        print(f"[POI|INIT] POIs en tablero: {sorted(list(self.poiPositions))} | mazo={len(self.poiDeck)}")
 
         # Crear agentes
         self.agentList = []
@@ -125,7 +125,11 @@ class ExplorerModel(Model):
             self.schedule.add(a)
             self.agentList.append(a)
 
-    # Colocar agentes en solucion random
+        if self.randomStatus: 
+            self.placeRandomAgents()
+        else:
+            self.assignPairs()
+        # Colocar agentes en solucion random
     def placeRandomAgents(self):
         for agent in self.agentList:
             while True:
@@ -385,21 +389,25 @@ class ExplorerModel(Model):
         cell = self.grid[y][x]
         cell.hasToken = True
         cell.poiHidden = card
-        self.poisOnBoard.add((x, y))
+
+        if (x, y) not in self.poiPositions:
+            self.poiPositions.append((x, y))
+
         self.actionsLog.append(('model', 'poiPlaced', x, y))
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
         return True
 
+
     # Mantiene 3 POI en tablero mientras quede mazo; coloca por 'dados'
     def ensure3POI(self):
-        while len(self.poisOnBoard) < 3 and self.poiDeck:
+        while len(self.poiPositions) < 3 and self.poiDeck:
             spot = self.dicePOI()
             if spot is None:
                 print("[POI|ENSURE] No hay spots válidos por dados para reponer POI")
                 break
             x, y = spot
             self.placeNewPOI(x, y, by_dice=False)
-        print(f"[POI|STATE] En tablero={len(self.poisOnBoard)} | Mazo={len(self.poiDeck)}")
+        print(f"[POI|STATE] En tablero={len(self.poiPositions)} | Mazo={len(self.poiDeck)}")
     
     # Se llama cuando el agente entra a la celda (x,y) con un POI
     def revealPOI(self, x, y, agent):
@@ -410,8 +418,8 @@ class ExplorerModel(Model):
         kind = cell.poiHidden  # 'V' o 'F'
         cell.hasToken = False
         cell.poiHidden = None
-        if (x, y) in self.poisOnBoard:
-            self.poisOnBoard.remove((x, y))
+        if (x, y) in self.poiPositions:
+            self.poiPositions.remove((x, y))
 
         if kind == 'V':
             agent.carriesPOI = True
@@ -453,24 +461,24 @@ class ExplorerModel(Model):
         agent.actionPoints = 0
 
     def checkGameOver(self):
-        # Colapso edificio
         if self.damagedWalls >= self.maxDamagedWalls:
             print("[GAME OVER] El edificio colapsó")
-            return True, "LOSE"
+            return False
 
-        # Demasiadas víctimas muertas
         if self.deadVictims >= self.maxDeadVictims:
             print("[GAME OVER] Han muerto 4 víctimas")
-            return True, "LOSE"
+            return False
 
-        # Suficientes víctimas rescatadas
         if self.savedVictims >= self.victimsToSave:
             print("[VICTORY] Se rescataron 7 víctimas")
-            return True, "WIN"
+            return False
 
-        return False, None
+        return True
 
     def step(self):
+        if not self.checkGameOver():
+            return
+
         self.actionsLog = []
         self.newlyIgnited = set()
         if not self.agentList:
@@ -497,9 +505,7 @@ class ExplorerModel(Model):
                 self.knockdown(a)
 
         # Checar si se acabó el juego
-        ended, result = self.checkGameOver()
-        if ended:
-            print(f"[END] Resultado: {result}")
+        if not self.checkGameOver():
             return
 
     def print_grid(self):
@@ -530,10 +536,10 @@ agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 model = ExplorerModel(agent_names)
 model.print_grid()
 print("----------------------")
-while model.currentStep < 1:
+while model.checkGameOver():
     model.step()
     allGrids.append(gridArray(model))
-    model.currentStep += 1 
+    model.currentStep += 1
 model.print_grid()
 # fig, axs = plt.subplots(figsize=(5, 5))
 # axs.set_xticks([])

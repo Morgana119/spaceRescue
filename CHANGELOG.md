@@ -1,5 +1,10 @@
 # Changelog
 
+# [fa/agentes] (08/09/2025)
+
+### Fixed
+- Fix checkGameOver method and conditions
+
 # [fa/agentes] (05/09/2025)
 
 ### Added
