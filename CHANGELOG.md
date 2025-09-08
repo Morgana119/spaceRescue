@@ -5,13 +5,10 @@
 ### Fixed
 - Fix checkGameOver method and conditions
 
-# [fa/agentes] (05/09/2025)
+# [Kami/agentes] (08/09/2025)
 
 ### Added
-- POI methods
-- Actions logs list
-- Game win or loss conditions
-
+- Propagate fire simulation when smoke 
 - nearAmbulance() method
 - teleportTo() method
 - placeAgent random method
@@ -28,6 +25,9 @@
 - Game win or loss conditions
 
 # [Kami/agentes] (04/09/2025)
+### Changes
+- Api helper infrastructure
+- Fire Grid Manager
 
 ### Added
 - Model Class with fire behaviour

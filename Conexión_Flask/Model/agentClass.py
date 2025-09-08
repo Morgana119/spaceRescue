@@ -35,10 +35,12 @@ import time
 import datetime
 import random
 
+from pathfinder import Pathfinder
+
 class RobotAgent(Agent):
-    def __init__(self, model):
+    def __init__(self,name, model):
         super().__init__(model)
-        self.idRobot = self.unique_id    # Mesa ya lo define 
+        self.idRobot = name    # Mesa ya lo define 
         self.rolRobot = 0                # 0 -> apagaFuegos | 1 -> salvaVidas
         self.actionPoints = 4
         self.partner = None
@@ -47,6 +49,7 @@ class RobotAgent(Agent):
         self.savedVictims = 0
         self.health = 1
         self.carriesPOI = False
+        self.pathfinder = Pathfinder(self)
 
     def neighborCoords(self, d):
         # Calcula las coordenadas de la celda vecina en la dirección d
@@ -84,7 +87,7 @@ class RobotAgent(Agent):
         self.model.agentsGrid.move_agent(self, (nx, ny))
         self.positionX, self.positionY = nx, ny
         self.actionPoints -= cost
-        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionX, self.positionY))
+        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionY, self.positionX))
 
         # auto-revelar POI si entras en la celda
         if dest.hasToken:
@@ -106,7 +109,7 @@ class RobotAgent(Agent):
         self.model.updateNeighbors(x, y, d, 0)
         self.model.grid[y][x].walls[d] = 0
         self.actionPoints -= 1
-        self.model.actionsLog.append(('agent', self.idRobot, 'openDoor', x, y, d))
+        self.model.actionsLog.append(('agent', self.idRobot, 'openDoor', y, x, d))
         print(f"[Agente {self.idRobot}] OPEN_DOOR dir={d}, AP={self.actionPoints}")
         return True  
     
@@ -125,7 +128,7 @@ class RobotAgent(Agent):
                 return False
             dest.smoke = False
             self.actionPoints -= 1
-            self.model.actionsLog.append(('agent', self.idRobot, 'stopSmoke', nx, ny))
+            self.model.actionsLog.append(('agent', self.idRobot, 'stopSmoke', ny, nx))
             print(f"[Agente {self.idRobot}] STOP_SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -136,7 +139,7 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = True
             self.actionPoints -= 1
-            self.model.actionsLog.append(('agent', self.idRobot, 'fireToSmoke', nx, ny))
+            self.model.actionsLog.append(('agent', self.idRobot, 'fireToSmoke', ny, nx))
             print(f"[Agente {self.idRobot}] EXTINGUISH_FIRE→SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
         return False  
@@ -153,7 +156,7 @@ class RobotAgent(Agent):
             cell.fire = False
             cell.smoke = False
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', self.positionX, self.positionY))
+            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', self.positionY, self.positionX))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en propia {(self.positionX, self.positionY)}, AP={self.actionPoints}")
             return True
         else:
@@ -168,7 +171,7 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = False
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', nx, ny))
+            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', ny, nx))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -194,7 +197,7 @@ class RobotAgent(Agent):
             self.model.grid[y][x].walls[d] = 2
             self.model.damagedWalls += 1
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'weakenWall', x, y, d))
+            self.model.actionsLog.append(('agent', self.idRobot, 'weakenWall', y, x, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (debilitar 1→2) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
 
@@ -205,7 +208,7 @@ class RobotAgent(Agent):
             self.model.grid[y][x].walls[d] = 0
             self.model.damagedWalls += 1
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'breakWall', x, y, d))
+            self.model.actionsLog.append(('agent', self.idRobot, 'breakWall', y, x, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (romper 2→0) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
             
@@ -247,11 +250,54 @@ class RobotAgent(Agent):
 
     # def meetPartner(self):
     
-    # def saveVictim(self):
+    def saveVictim(self):
+        # print(self.idRobot, " ENTRO AL SAVE VICTIM")
+        if not self.carriesPOI:
+            print(f"[Agente {self.idRobot}] No lleva víctima, no va a la salida")
+            return
+        
+        pathfinder = Pathfinder(self)
+        path, exit = pathfinder.closestExit()
+        print("Path:_", path)
+        print("EXIT: ", exit)
+        path = [pos for pos, _ in path]
+
+        if not path or len(path) == 0:
+            print(f"[Agente {self.idRobot}] No hay camino a la salida")
+            return
+        
+        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+        
+        for i in range(len(path)):
+            next_y, next_x = path[i]
+            # solo moverse si es vecino
+            moved = False
+            for d, (dy, dx) in enumerate(dirs):
+                print("MOVE: ", d, dy, dx)
+                # PARA PROBAR EL SAVE VICTIMS SE RESTABLECE SUS AP A 4 
+                if self.actionPoints <= 0: self.actionPoints = 4
+                
+                if self.positionY + dy == next_y and self.positionX + dx == next_x:
+                    moved = self.move(d)
+                    print("Move: ", moved)
+                    if self.positionY == exit[0] and self.positionX == exit[1]:
+                        self.carriesPOI = False
+                        self.savedVictims += 1
+                        print("Carries POI to false")   
+
+                    break
+            if not moved:
+                print("No se pudo mover a", (next_y, next_x))
+                break
 
     # def damaged(self):
 
     def step(self):
         # Reinicia PA y ejecuta hasta agotarlos
         self.actionPoints = 4
-        self.actions()
+
+        if self.model.randomStatus:
+            if self.carriesPOI:
+                self.saveVictim()
+            else:
+                self.actions()
