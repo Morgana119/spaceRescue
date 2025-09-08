@@ -385,6 +385,7 @@ class ExplorerModel(Model):
     
     # Coloca un POI boca abajo sacando del mazo. Si by_dice=True y la celda no sirve, reintenta por dados
     def placeNewPOI(self, x, y, by_dice=True):
+        print("Entro al place New POI------------------------------------------------------")
         if not self.poiDeck:
             print("[POI|PLACE] Mazo vacío: no se puede colocar más POI")
             return False
@@ -439,8 +440,9 @@ class ExplorerModel(Model):
         kind = cell.poiHidden  # 'V' o 'F'
         cell.hasToken = False
         cell.poiHidden = None
-        if (x, y) in self.poisOnBoard:
-            self.poisOnBoard.remove((x, y))
+        if (y, x) in self.poisOnBoard:
+            print("Entro al remove ------------------------------------")
+            self.poisOnBoard.remove((y, x))
 
         if kind == 'V':
             agent.carriesPOI = True

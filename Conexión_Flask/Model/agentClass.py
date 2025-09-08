@@ -287,7 +287,8 @@ class RobotAgent(Agent):
                         self.savedVictims += 1
                         self.model.ensure3POI()
                         print("LENGHT:", len(self.model.poisOnBoard))
-                        # self.model.poisOnBoard
+                        self.model.poisOnBoard
+                        print("LENGHT:", len(self.model.poisOnBoard))
                         print("POI", self.model.poisOnBoard)
                         print("Carries POI to false")   
 
