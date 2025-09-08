@@ -132,6 +132,7 @@ class Pathfinder:
     def closestExit(self):
         print(self.agent.idRobot,"Entro al closes Exit", flush=True)
         print("PUNTOS DE ACCION ",self.agent.actionPoints)
+        print("POI", self.model.poisOnBoard)
         exits = self.agent.model.exitPositions
 
         if (self.agent.positionY, self.agent.positionX) in exits:

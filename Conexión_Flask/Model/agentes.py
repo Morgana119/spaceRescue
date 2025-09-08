@@ -408,7 +408,7 @@ class ExplorerModel(Model):
 
         # Saca la carta del mazo y colócala oculta en la celda
         card = self.poiDeck.pop()   # 'V' o 'F', queda oculta
-        print("CELL: ", y, x)
+        print("CELL: ", x, y)
         cell = self.grid[x][y]
         cell.hasToken = True
         cell.poiHidden = card
