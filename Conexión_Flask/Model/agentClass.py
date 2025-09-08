@@ -285,6 +285,10 @@ class RobotAgent(Agent):
                     if self.positionY == exit[0] and self.positionX == exit[1]:
                         self.carriesPOI = False
                         self.savedVictims += 1
+                        self.model.ensure3POI()
+                        print("LENGHT:", len(self.model.poisOnBoard))
+                        # self.model.poisOnBoard
+                        print("POI", self.model.poisOnBoard)
                         print("Carries POI to false")   
 
                     break

@@ -375,8 +375,10 @@ class ExplorerModel(Model):
     
     # Elige coordenadas con dados (RollDice) hasta encontrar una celda válida
     def dicePOI(self, max_tries=500):
+        print("Entro al roll dice:")
         for _ in range(max_tries):
-            x, y = self.RollDice()          
+            x, y = self.RollDice() 
+            print("DICE", x,y, "----------------------------------------------------------------")       
             if self.cellPOI(x, y):
                 return (x, y)
         return None
@@ -387,25 +389,27 @@ class ExplorerModel(Model):
             print("[POI|PLACE] Mazo vacío: no se puede colocar más POI")
             return False
 
-        if by_dice and not self.cellPOI(x, y):
-            # si nos dieron coords pero no es válida, ignora y busca por dados
-            spot = self.dicePOI()
-            if spot is None:
-                print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
-                return False
-            x, y = spot
-        else:
-            if not self.cellPOI(x, y):
-                print(f"[POI|PLACE] Invalid spot {(x,y)}; reintentando con dados...")
-                spot = self.dicePOI()
-                if spot is None:
-                    print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
-                    return False
-                x, y = spot
+        # if by_dice and not self.cellPOI(x, y):
+        #     # si nos dieron coords pero no es válida, ignora y busca por dados
+        #     # spot = self.dicePOI()
+        #     spot = x, y
+        #     if spot is None:
+        #         print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
+        #         return False
+        #     x, y = spot
+        # else:
+        #     if not self.cellPOI(x, y):
+        #         print(f"[POI|PLACE] Invalid spot {(x,y)}; reintentando con dados...")
+        #         spot = self.dicePOI()
+        #         if spot is None:
+        #             print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
+        #             return False
+        #         x, y = spot
 
         # Saca la carta del mazo y colócala oculta en la celda
         card = self.poiDeck.pop()   # 'V' o 'F', queda oculta
-        cell = self.grid[y][x]
+        print("CELL: ", y, x)
+        cell = self.grid[x][y]
         cell.hasToken = True
         cell.poiHidden = card
         self.poisOnBoard.add((x, y))
@@ -415,6 +419,7 @@ class ExplorerModel(Model):
 
     # Mantiene 3 POI en tablero mientras quede mazo; coloca por 'dados'
     def ensure3POI(self):
+        print("Entro al ensure#POI")
         while len(self.poisOnBoard) < 3 and self.poiDeck:
             spot = self.dicePOI()
             if spot is None:
@@ -447,7 +452,7 @@ class ExplorerModel(Model):
         
         self.actionsLog.append(('model', 'poiReveal', x, y, kind))  # kind: 'V' o 'F'
         # Reponer hasta 3 por dados
-        self.ensure3POI()
+        # self.ensure3POI()
     
     # Escoge la ambulancia más cercana por distancia Manhattan
     def nearestAmbulance(self, x, y):
