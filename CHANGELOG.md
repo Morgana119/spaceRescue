@@ -1,11 +1,35 @@
 # Changelog
 
+<<<<<<< HEAD
 # [Ale/AStar] (04/09/2025)
 
 ### Added
 - AStar algorithm implemented
 - SaveVictim method implemented for agent
 - If the agent carries POI it goes straight to SaveVictim
+=======
+# [fa/agentes] (05/09/2025)
+
+### Added
+- POI methods
+- Actions logs list
+- Game win or loss conditions
+
+- nearAmbulance() method
+- teleportTo() method
+- placeAgent random method
+- placeAgent strategy method
+
+### Changed
+- Separete agent class to other file
+
+# [fa/agentes] (05/09/2025)
+
+### Added
+- POI methods
+- Actions logs list
+- Game win or loss conditions
+>>>>>>> develop
 
 # [Kami/agentes] (04/09/2025)
 
@@ -14,7 +38,7 @@
 - Script for Fire Grid Manager on Unity
 - Route for full State of Grid
 
-# [fa/unity] (03/09/2025)
+# [fa/agentes] (03/09/2025)
 
 ### Changed
 - breakWall method to take into account that it must be damages 2 time in order
