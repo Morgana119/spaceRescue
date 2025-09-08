@@ -36,6 +36,7 @@ import datetime
 import random
 
 from .agentClass import RobotAgent
+from collections import deque
 
 class Cell:
     def __init__(self, x, y, walls):
@@ -226,6 +227,7 @@ class ExplorerModel(Model):
             nx += dx
     
     def updateSmoke(self) : 
+        initial_ignition_points = set()
         for y in range(self.height):
             for x in range(self.width):
                 if self.grid[y][x].smoke == True:
@@ -234,11 +236,38 @@ class ExplorerModel(Model):
                         if 0 <= ny < self.height and 0 <= nx < self.width:
                             neighbor = self.grid[ny][nx]
                             if self.grid[ny][nx].fire == True: 
-                                self.grid[y][x].fire = True
-                                self.grid[y][x].smoke = False
-                                self.changes.append(GridChange("fire", y, x))
-                                self.actionsLog.append(('model', 'ignite', ny, nx))
-                                break
+                                initial_ignition_points.add((y, x))
+                                # self.grid[y][x].fire = True
+                                # self.grid[y][x].smoke = False
+                                # self.actionsLog.append(('model', 'stopSmoke', y, x))
+                                # self.actionsLog.append(('model', 'ignite', y, x))
+                                # self.propagateFire(y, x)
+        for y, x in initial_ignition_points:
+            self.propagateFire(y, x)    
+
+    def propagateFire(self, y_start, x_start):
+        queue = deque()
+        processed_cells = set()
+
+        queue.append((y_start, x_start))
+        processed_cells.add((y_start, x_start))
+
+        while queue:
+            y, x = queue.popleft()
+            
+            self.grid[y][x].fire = True
+            self.grid[y][x].smoke = False
+            self.actionsLog.append(('model', 'stopSmoke', y, x))
+            self.actionsLog.append(('model', 'ignite', y, x))
+
+            for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                ny, nx = y + dy, x + dx
+
+                if 0 <= ny < self.height and 0 <= nx < self.width and (ny, nx) not in processed_cells:
+                    neighbor = self.grid[ny][nx]
+                    if neighbor.smoke:
+                        queue.append((ny, nx))
+                        processed_cells.add((ny, nx))
 
     def updateNeighbors(self, x, y, coordinate, newStatus):
         update = (coordinate + 2) % 4
@@ -269,6 +298,7 @@ class ExplorerModel(Model):
             self.grid[y][x].fire = True
             fire = (y, x)
             self.newlyIgnited.add((x, y))
+            self.actionsLog.append(('model', 'stopSmoke', y, x))
             self.actionsLog.append(('model', 'ignite', y, x))
             self.changes.append(GridChange("fire", x, y))
 
@@ -468,6 +498,7 @@ class ExplorerModel(Model):
         self.actionsLog.append(('model', 'dice', x, y))
         print(f"[FIRE] Tirada de fuego desde {(x, y)}")
         self.spreadFire(x, y)
+        self.updateSmoke()
         self.ensure3POI()
 
         # Si alguien está en una casilla recién encendida, knockdown

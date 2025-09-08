@@ -55,6 +55,10 @@ public class ApiHelper : MonoBehaviour {
                                 gridFireManager.ApplyChange("fire", act.x, act.y);
                             } else if (act.action == "smoke") {
                                 gridFireManager.ApplyChange("smoke", act.x, act.y);
+                            } else if (act.action == "stopSmoke") {
+                                gridFireManager.ApplyChange("stopSmoke", act.x, act.y);
+                            } else if (act.action == "extinguish") {
+                                gridFireManager.ApplyChange("extinguish", act.x, act.y);
                             }
                         }
 

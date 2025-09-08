@@ -26,18 +26,14 @@ public class GridFireManager : MonoBehaviour {
 
         if (activeObjects.ContainsKey(key)) {
             var obj = activeObjects[key];
-
-            // 🔹 Solo destruye si es fuego o humo
-            if (obj != null && 
-                (obj.CompareTag("Fire") || obj.CompareTag("Smoke"))) 
-            {
+            if (obj != null && (obj.CompareTag("Fire") || obj.CompareTag("Smoke"))) {
                 Destroy(obj);
                 activeObjects.Remove(key);
             }
         }
 
+        if (type == "extinguish" || type == "stopSmoke") return;
 
-        // 🔹 Crear nuevo objeto según el tipo
         GameObject prefab = null;
         if (type == "fire") prefab = firePrefab;
         else if (type == "smoke") prefab = smokePrefab;
