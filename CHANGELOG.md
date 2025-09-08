@@ -1,5 +1,13 @@
 # Changelog
 
+<<<<<<< HEAD
+# [Ale/AStar] (04/09/2025)
+
+### Added
+- AStar algorithm implemented
+- SaveVictim method implemented for agent
+- If the agent carries POI it goes straight to SaveVictim
+=======
 # [fa/agentes] (05/09/2025)
 
 ### Added
@@ -21,6 +29,7 @@
 - POI methods
 - Actions logs list
 - Game win or loss conditions
+>>>>>>> develop
 
 # [Kami/agentes] (04/09/2025)
 

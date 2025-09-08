@@ -35,10 +35,12 @@ import time
 import datetime
 import random
 
+from pathfinder import Pathfinder
+
 class RobotAgent(Agent):
-    def __init__(self, model):
+    def __init__(self,name, model):
         super().__init__(model)
-        self.idRobot = self.unique_id    # Mesa ya lo define 
+        self.idRobot = name    # Mesa ya lo define 
         self.rolRobot = 0                # 0 -> apagaFuegos | 1 -> salvaVidas
         self.actionPoints = 4
         self.partner = None
@@ -47,6 +49,7 @@ class RobotAgent(Agent):
         self.savedVictims = 0
         self.health = 1
         self.carriesPOI = False
+        self.pathfinder = Pathfinder(self)
 
     def neighborCoords(self, d):
         # Calcula las coordenadas de la celda vecina en la dirección d
@@ -247,11 +250,54 @@ class RobotAgent(Agent):
 
     # def meetPartner(self):
     
-    # def saveVictim(self):
+    def saveVictim(self):
+        # print(self.idRobot, " ENTRO AL SAVE VICTIM")
+        if not self.carriesPOI:
+            print(f"[Agente {self.idRobot}] No lleva víctima, no va a la salida")
+            return
+        
+        pathfinder = Pathfinder(self)
+        path, exit = pathfinder.closestExit()
+        print("Path:_", path)
+        print("EXIT: ", exit)
+        path = [pos for pos, _ in path]
+
+        if not path or len(path) == 0:
+            print(f"[Agente {self.idRobot}] No hay camino a la salida")
+            return
+        
+        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+        
+        for i in range(len(path)):
+            next_y, next_x = path[i]
+            # solo moverse si es vecino
+            moved = False
+            for d, (dy, dx) in enumerate(dirs):
+                print("MOVE: ", d, dy, dx)
+                # PARA PROBAR EL SAVE VICTIMS SE RESTABLECE SUS AP A 4 
+                if self.actionPoints <= 0: self.actionPoints = 4
+                
+                if self.positionY + dy == next_y and self.positionX + dx == next_x:
+                    moved = self.move(d)
+                    print("Move: ", moved)
+                    if self.positionY == exit[0] and self.positionX == exit[1]:
+                        self.carriesPOI = False
+                        self.savedVictims += 1
+                        print("Carries POI to false")   
+
+                    break
+            if not moved:
+                print("No se pudo mover a", (next_y, next_x))
+                break
 
     # def damaged(self):
 
     def step(self):
         # Reinicia PA y ejecuta hasta agotarlos
         self.actionPoints = 4
-        self.actions()
+
+        if self.model.randomStatus:
+            if self.carriesPOI:
+                self.saveVictim()
+            else:
+                self.actions()

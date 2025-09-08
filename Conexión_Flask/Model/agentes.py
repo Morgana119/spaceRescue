@@ -35,6 +35,7 @@ import time
 import datetime
 import random
 
+
 from agentClass import RobotAgent
 
 class Cell:
@@ -46,6 +47,7 @@ class Cell:
         self.fire = False
         self.hasToken = False
         self.smoke = False
+        self.isExit = False
         self.poiHidden = None   # 'V' o 'F' si hay POI oculto
 
 class ExplorerModel(Model):
@@ -91,9 +93,19 @@ class ExplorerModel(Model):
             ["0100","0011","0010","0000","0010","0310","0013","0310","0113","0001"],
             ["0000","1000","1000","1000","1000","1000","1000","1000","1000","1000"]
         ]
+        gridValues2 = [
+            ["0000","0010","0010","0010","0010","0010","0000","0010","0010","0000"],
+            ["0100","1001","1000","1000","1000","1100","0001","1000","1100","0001"],
+            ["0100","0001","0000","0110","0011","0010","0010","0010","0100","0001"],
+            ["0000","0000","0000","1000","1000","1000","1100","1001","0100","0000"],
+            ["0100","0011","0110","0011","0000","0010","0010","0010","0010","0000"],
+            ["0100","1001","1000","1000","0000","1100","1001","1100","1101","0001"],
+            ["0100","0011","0010","0000","0010","0010","0010","0010","0110","0001"],
+            ["0000","1000","1000","0000","1000","1000","1000","1000","1000","1000"]
+        ]
 
         self.grid = [
-                [Cell(x, y, walls=[int(d) for d in gridValues[y][x]])
+                [Cell(x, y, walls=[int(d) for d in gridValues2[y][x]])
                 for x in range(self.width)]
                 for y in range(self.height)
             ]
@@ -103,6 +115,11 @@ class ExplorerModel(Model):
         for x, y in firePositions:
             self.grid[y][x].fire = True
         print(f"[INIT] Fuego inicial en: {firePositions}")
+        
+        self.exitPositions = [(0,6), (3,0), (7,3), (4,9)]
+        for y, x in self.exitPositions:
+            self.grid[y][x].isExit = True
+        print(f"[INIT] Puertas inicial en: {self.exitPositions}")
 
         self.poiDeck = ['V'] * 10 + ['F'] * 5
         self.random.shuffle(self.poiDeck)
@@ -121,9 +138,14 @@ class ExplorerModel(Model):
         self.agentList = []
         self.current_turn = 0
         for i in range(self.numRobots):
-            a = RobotAgent(self)
+            a = RobotAgent(agent_names[i], self)
             self.schedule.add(a)
             self.agentList.append(a)
+        
+        if self.randomStatus: 
+            self.placeRandomAgents()
+        else:
+            self.assignPairs()
 
     # Colocar agentes en solucion random
     def placeRandomAgents(self):
@@ -183,6 +205,7 @@ class ExplorerModel(Model):
                         a2.positionX, a2.positionY = fx, fy
                         print(f"[INIT] {a2.idRobot} en {(fx, fy)} (fallback)")
                         break
+
     
     def print_grid(self):
         for y in range(self.height):
@@ -479,6 +502,7 @@ class ExplorerModel(Model):
         # agente del turno actual
         agent = self.agentList[self.current_turn]
         print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
+
         agent.step()  # este agente gasta hasta 4 PA en su propio step()
 
         # avanza el turno de forma cíclica
@@ -525,23 +549,62 @@ def gridArray(model):
                 arr[y][x] = 2
     return arr
 
-allGrids = []
+
 agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 model = ExplorerModel(agent_names)
+#model.randomStatus = False
+allGrids = []
+num_steps = 10  # cuántos pasos quieres simular desde el estado actual
 model.print_grid()
 print("----------------------")
-while model.currentStep < 1:
+
+# for agent in model.agents:
+#     agent.carriesPOI = False
+#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+
+model.agents[0].carriesPOI = True
+model.agents[1].carriesPOI = True
+
+while model.checkGameOver():
     model.step()
     allGrids.append(gridArray(model))
     model.currentStep += 1 
 model.print_grid()
+
+print("Estado inicial del tablero:")
+model.print_grid()
+print("----------------------")
+
+for agent in model.agents:
+    print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+          f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+
+# ------------- PRUEBA A* PARA 1 AGENTE ----------------------
+# agent = model.agents[0]  # tomar un agente cualquiera
+# agent.carriesPOI = False
+# agent.model.randomStatus = True  # activar modo aleatorio
+# # Definir un objetivo cualquiera (por ejemplo la salida más cercana)
+# pathfinder = agent.pathfinder
+# goal = (4,8) # reemplaza con coordenadas reales de la salida
+# path = pathfinder.aStar((agent.positionY, agent.positionX), goal)
+# print("Posición del agente:", agent.positionY, agent.positionX)
+# print("Goal:", goal[0], goal[1])
+
+# if path is None:
+#     print("A* no encontró camino.")
+# else:
+#     print("Path devuelto por A* (modo aleatorio):")
+#     for step in path:
+#         print(step)
+
+
 # fig, axs = plt.subplots(figsize=(5, 5))
 # axs.set_xticks([])
 # axs.set_yticks([])
 
 # # Definir colores: 0=blanco, 1=rojo (fuego), 2=gris (humo)
 # cmap = ListedColormap(['white', 'red', 'gray'])
-
 # # Margen visual entre celdas
 # margin = 0.5
 # height, width = allGrids[0].shape
