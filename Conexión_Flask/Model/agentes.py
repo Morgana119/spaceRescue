@@ -455,7 +455,27 @@ class ExplorerModel(Model):
                 break
             x, y = spot
             self.placeNewPOI(x, y, by_dice=False)
-        print(f"[POI|STATE] En tablero={len(self.poisOnBoard)} | Mazo={len(self.poiDeck)}")
+        print(f"[POI|STATE] En tablero={len(self.poiPositions)} | Mazo={len(self.poiDeck)}")
+
+    def deadPOI(self):
+        for y in range(self.height):
+            for x in range(self.width):
+                cell = self.grid[y][x]
+                if not cell.hasToken:
+                    return
+
+                kind = cell.poiHidden  # 'V' o 'F'
+                cell.hasToken = False
+                cell.poiHidden = None
+                if (x, y) in self.poiPositions:
+                    self.poiPositions.remove((x, y))
+                if kind == 'V':
+                    self.deadVictims
+                    
+                
+                self.actionsLog.append(('model', 'poiReveal', x, y, kind))  # kind: 'V' o 'F'
+                # Reponer hasta 3 por dados
+                self.ensure3POI()
     
     # Se llama cuando el agente entra a la celda (x,y) con un POI
     def revealPOI(self, x, y, agent):
@@ -472,7 +492,7 @@ class ExplorerModel(Model):
         if kind == 'V':
             agent.carriesPOI = True
             agent.rolRobot = 1
-            agent.savedVictims()
+            agent.saveVictim()
             print(f"[POI|REVEAL] VÍCTIMA en {(x, y)} → {agent.idRobot} ahora la transporta")
         else:
             print(f"[POI|REVEAL] FALSA ALARMA en {(x, y)}")
