@@ -50,6 +50,7 @@ class RobotAgent(Agent):
         self.health = 1
         self.carriesPOI = False
         self.pathfinder = Pathfinder(self)
+        self.posPOI = None
 
     def neighborCoords(self, d):
         # Calcula las coordenadas de la celda vecina en la dirección d
@@ -87,7 +88,7 @@ class RobotAgent(Agent):
         self.model.agentsGrid.move_agent(self, (nx, ny))
         self.positionX, self.positionY = nx, ny
         self.actionPoints -= cost
-        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionY, self.positionX))
+        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionX, self.positionY))
 
         # auto-revelar POI si entras en la celda
         if dest.hasToken:
@@ -109,7 +110,7 @@ class RobotAgent(Agent):
         self.model.updateNeighbors(x, y, d, 0)
         self.model.grid[y][x].walls[d] = 0
         self.actionPoints -= 1
-        self.model.actionsLog.append(('agent', self.idRobot, 'openDoor', y, x, d))
+        self.model.actionsLog.append(('agent', self.idRobot, 'openDoor', x, y, d))
         print(f"[Agente {self.idRobot}] OPEN_DOOR dir={d}, AP={self.actionPoints}")
         return True  
     
@@ -139,7 +140,11 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = True
             self.actionPoints -= 1
-            self.model.actionsLog.append(('agent', self.idRobot, 'fireToSmoke', ny, nx))
+            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
+            self.model.actionsLog.append(('agent', self.idRobot, 'smoke', ny, nx))
+            
+            
+            
             print(f"[Agente {self.idRobot}] EXTINGUISH_FIRE→SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
         return False  
@@ -156,7 +161,7 @@ class RobotAgent(Agent):
             cell.fire = False
             cell.smoke = False
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', self.positionY, self.positionX))
+            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', self.positionY, self.positionX))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en propia {(self.positionX, self.positionY)}, AP={self.actionPoints}")
             return True
         else:
@@ -171,7 +176,7 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = False
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', ny, nx))
+            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -197,7 +202,7 @@ class RobotAgent(Agent):
             self.model.grid[y][x].walls[d] = 2
             self.model.damagedWalls += 1
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'weakenWall', y, x, d))
+            self.model.actionsLog.append(('agent', self.idRobot, 'weakenWall', x, y, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (debilitar 1→2) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
 
@@ -208,7 +213,7 @@ class RobotAgent(Agent):
             self.model.grid[y][x].walls[d] = 0
             self.model.damagedWalls += 1
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'breakWall', y, x, d))
+            self.model.actionsLog.append(('agent', self.idRobot, 'breakWall', x, y, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (romper 2→0) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
             
@@ -256,15 +261,16 @@ class RobotAgent(Agent):
             print(f"[Agente {self.idRobot}] No lleva víctima, no va a la salida")
             return
         
-        pathfinder = Pathfinder(self)
-        path, exit = pathfinder.closestExit()
+        path, exit = self.pathfinder.closestExit()
         print("Path:_", path)
         print("EXIT: ", exit)
-        path = [pos for pos, _ in path]
 
         if not path or len(path) == 0:
             print(f"[Agente {self.idRobot}] No hay camino a la salida")
             return
+        
+        path = [pos for pos, _ in path]
+
         
         dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
         
@@ -273,9 +279,9 @@ class RobotAgent(Agent):
             # solo moverse si es vecino
             moved = False
             for d, (dy, dx) in enumerate(dirs):
-                print("MOVE: ", d, dy, dx)
+                # print("MOVE: ", d, dy, dx)
                 # PARA PROBAR EL SAVE VICTIMS SE RESTABLECE SUS AP A 4 
-                if self.actionPoints <= 0: self.actionPoints = 4
+                # if self.actionPoints <= 0: self.actionPoints = 4
                 
                 if self.positionY + dy == next_y and self.positionX + dx == next_x:
                     moved = self.move(d)
@@ -283,21 +289,35 @@ class RobotAgent(Agent):
                     if self.positionY == exit[0] and self.positionX == exit[1]:
                         self.carriesPOI = False
                         self.savedVictims += 1
-                        print("Carries POI to false")   
+                        y, x = self.posPOI
+                        self.model.poisOnBoard.remove((y, x))
+                        self.model.ensure3POI()
+                        print("LENGHT:", len(self.model.poisOnBoard))
+                        print("LENGHT:", len(self.model.poisOnBoard))
+                        print("POI", self.model.poisOnBoard)
+                        print("Carries POI to false") 
 
                     break
             if not moved:
                 print("No se pudo mover a", (next_y, next_x))
                 break
 
-    # def damaged(self):
+    # def damaged(self):}
+
+    def estrategyActions(self):
+        self.pathfinder.closestPOI()
+        
 
     def step(self):
         # Reinicia PA y ejecuta hasta agotarlos
         self.actionPoints = 4
 
-        if self.model.randomStatus:
+        if self.model.randomStatus == True:
+            print("Entro a random to model")
             if self.carriesPOI:
                 self.saveVictim()
             else:
                 self.actions()
+        else:
+            print("Not RANDOM: ", self.model.randomStatus)
+            self.estrategyActions()
