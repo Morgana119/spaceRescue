@@ -1,10 +1,38 @@
 # Changelog
 
+# [Ale/AStar] (09/09/2025)
+
+### Fixed
+- Closest POI function implemented
+- AStar for not random model status works correctly
+- Merge with Kami/JSON & develop
+
+
+# [fa/agentes] (08/09/2025)
+
+### Fixed
+- Fix checkGameOver method and conditions
+
 # [Kami/agentes] (08/09/2025)
 
 ### Added
 - Propagate fire simulation when smoke 
+- nearAmbulance() method
+- teleportTo() method
+- placeAgent random method
+- placeAgent strategy method
 
+### Changed
+- Separete agent class to other file
+
+# [fa/agentes] (05/09/2025)
+
+### Added
+- POI methods
+- Actions logs list
+- Game win or loss conditions
+
+# [Kami/agentes] (04/09/2025)
 ### Changes
 - Api helper infrastructure
 - Fire Grid Manager
@@ -14,7 +42,7 @@
 - Script for Fire Grid Manager on Unity
 - Route for full State of Grid
 
-# [fa/unity] (03/09/2025)
+# [fa/agentes] (03/09/2025)
 
 ### Changed
 - breakWall method to take into account that it must be damages 2 time in order
