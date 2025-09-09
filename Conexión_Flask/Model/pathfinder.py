@@ -149,9 +149,10 @@ class Pathfinder:
                         possible_actions.append('extinguir_humo')
                         # if ny==5 and nx==3:
                         #     print("Cell.smoke", ny, nx, cell.smoke,possible_actions,  flush=True)
-                    elif cell.fire == False and cell.smoke == False:
+                    # elif cell.fire == False and cell.smoke == False:
+
                         # print("Entro aqui", flush=True)
-                        possible_actions += ['moverse', 'abrir_puerta', 'derribar_pared']
+                    possible_actions += ['moverse', 'abrir_puerta', 'derribar_pared']
                         # if ny==5 and nx==3:
                         #     print("Cell alone", ny, nx,possible_actions,  flush=True)
                     # print(self.agent.model.firePositions, "FIRE POSITIONS -------------------------------------------------------------------------------------------------", flush=True)
