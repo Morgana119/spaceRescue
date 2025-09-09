@@ -71,6 +71,10 @@ class Pathfinder:
                 best_priority = priority
                 best_action = action
 
+        # fallback (never return None)
+        # if best_action is None:
+        #     best_action = "moverse"
+
         # print(f"[RESULT] Agent {self.agent.idRobot} | Best priority: {best_priority} | Best action: {best_action} | POS: {self.agent.positionY, self.agent.positionX} | PÄRA {ny, nx}", flush=True)
         # if ny==5 and nx==3:
         #     print("Best action choosed", best_action, ny, nx)
