@@ -51,13 +51,13 @@ class Cell:
         self.poiHidden = None   # 'V' o 'F' si hay POI oculto
 
 class ExplorerModel(Model):
-    def __init__(self,agent_names, width = 10, height = 8, numRobots = 6):
+    def __init__(self,agent_names,  randomStatus,  width = 10, height = 8, numRobots = 6):
         super().__init__()
         self.agentsGrid = MultiGrid(width, height, torus=False)    
         self.schedule = RandomActivation(self)
         self.damagedWalls = 0
         self.savedVictims = 0
-        self.randomStatus = True
+        self.randomStatus = randomStatus
         self.width = width
         self.height = height
         self.agentIndex = 0
@@ -84,24 +84,24 @@ class ExplorerModel(Model):
         # 3 -> puerta cerrada
         # arriba | derecha | abajo | izquierda
         gridValues = [
-            ["0000","0010","0010","0010","0010","0010","0010","0010","0010","0000"],
+            ["0000","0010","0010","0010","0010","0010","0000","0010","0010","0000"],
             ["0100","1001","1000","1300","1003","1100","0001","1000","1100","0001"],
             ["0100","0001","0000","0110","0011","0310","0013","0010","0130","0001"],
-            ["0100","0000","0300","1003","1000","1000","1100","1001","3100","0001"],
-            ["0100","0011","0110","0011","0030","0010","0310","0013","0010","0001"],
+            ["0000","0000","0300","1003","1000","1000","1100","1001","3100","0001"],
+            ["0100","0011","0110","0011","0030","0010","0310","0013","0010","0000"],
             ["0100","1001","1000","1000","3000","1100","1001","1100","1101","0001"],
             ["0100","0011","0010","0000","0010","0310","0013","0310","0113","0001"],
-            ["0000","1000","1000","1000","1000","1000","1000","1000","1000","1000"]
+            ["0000","1000","1000","0000","1000","1000","1000","1000","1000","0000"]
         ]
         gridValues2 = [
             ["0000","0010","0010","0010","0010","0010","0000","0010","0010","0000"],
             ["0100","1001","1000","1000","1000","1100","0001","1000","1100","0001"],
             ["0100","0001","0000","0110","0011","0010","0010","0010","0100","0001"],
-            ["0000","0000","0000","1000","1000","1000","1100","1001","0100","0000"],
+            ["0000","0000","0000","1000","1000","1000","1100","1001","0100","0001"],
             ["0100","0011","0110","0011","0000","0010","0010","0010","0010","0000"],
             ["0100","1001","1000","1000","0000","1100","1001","1100","1101","0001"],
             ["0100","0011","0010","0000","0010","0010","0010","0010","0110","0001"],
-            ["0000","1000","1000","0000","1000","1000","1000","1000","1000","1000"]
+            ["0000","1000","1000","0000","1000","1000","1000","1000","1000","0000"]
         ]
 
         self.grid = [
@@ -111,15 +111,18 @@ class ExplorerModel(Model):
             ]
 
         # Se llena el grid de fuego con posiciones iniciales
-        firePositions = [(2, 2), (2, 3), (3, 2), (4, 3), (3, 3), (5, 3), (4, 4), (6, 5), (7, 5), (6, 6) ]
-        for x, y in firePositions:
+        self.firePositions = [(2, 2), (2, 3), (3, 2), (4, 3), (3, 3), (5, 3), (4, 4), (6, 5), (7, 5), (6, 6) ]
+        for x, y in self.firePositions:
             self.grid[y][x].fire = True
-        print(f"[INIT] Fuego inicial en: {firePositions}")
+        print(f"[INIT] Fuego inicial en: {self.firePositions}")
         
         self.exitPositions = [(0,6), (3,0), (7,3), (4,9)]
         for y, x in self.exitPositions:
             self.grid[y][x].isExit = True
         print(f"[INIT] Puertas inicial en: {self.exitPositions}")
+
+        for y, x in self.firePositions:
+            print(f"[DEBUG] FUEGO inicial en: {y,x, self.grid[y][x].fire}")
 
         self.poiDeck = ['V'] * 10 + ['F'] * 5
         self.random.shuffle(self.poiDeck)
@@ -142,9 +145,11 @@ class ExplorerModel(Model):
             self.schedule.add(a)
             self.agentList.append(a)
         
-        if self.randomStatus: 
+        if self.randomStatus == True: 
+            print("Random----------------------------------------------------")
             self.placeRandomAgents()
         else:
+            print("Not random----------------------------------------------------")
             self.assignPairs()
 
     # Colocar agentes en solucion random
@@ -559,8 +564,7 @@ def gridArray(model):
 
 
 agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
-model = ExplorerModel(agent_names)
-#model.randomStatus = False
+model = ExplorerModel(agent_names, False)
 allGrids = []
 num_steps = 40  # cuántos pasos quieres simular desde el estado actual
 model.print_grid()
@@ -571,19 +575,22 @@ print("----------------------")
 #     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
 #           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
 
-while model.currentStep < num_steps:
-    model.step()
-    allGrids.append(gridArray(model))
-    model.currentStep += 1 
-model.print_grid()
-
-print("Estado inicial del tablero:")
-model.print_grid()
-print("----------------------")
-
+# while model.currentStep < num_steps:
+#     model.step()
+#     allGrids.append(gridArray(model))
+#     model.currentStep += 1 
+# model.print_grid()
 for agent in model.agents:
-    print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
-          f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+    path, poi = agent.pathfinder.closestPOI()
+    print(f"[TEST] Agente {agent.idRobot} -> POI más cercano en {poi}, path: {path}")
+
+# print("Estado inicial del tablero:")
+# model.print_grid()
+# print("----------------------")
+
+# for agent in model.agents:
+#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
 
 # ------------- PRUEBA A* PARA 1 AGENTE ----------------------
 # agent = model.agents[0]  # tomar un agente cualquiera

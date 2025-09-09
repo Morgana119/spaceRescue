@@ -256,8 +256,7 @@ class RobotAgent(Agent):
             print(f"[Agente {self.idRobot}] No lleva víctima, no va a la salida")
             return
         
-        pathfinder = Pathfinder(self)
-        path, exit = pathfinder.closestExit()
+        path, exit = self.pathfinder.closestExit()
         print("Path:_", path)
         print("EXIT: ", exit)
 
@@ -297,14 +296,22 @@ class RobotAgent(Agent):
                 print("No se pudo mover a", (next_y, next_x))
                 break
 
-    # def damaged(self):
+    # def damaged(self):}
+
+    def estrategyActions(self):
+        self.pathfinder.closestPOI()
+        
 
     def step(self):
         # Reinicia PA y ejecuta hasta agotarlos
         self.actionPoints = 4
 
-        if self.model.randomStatus:
+        if self.model.randomStatus == True:
+            print("Entro a random to model")
             if self.carriesPOI:
                 self.saveVictim()
             else:
                 self.actions()
+        else:
+            print("Not RANDOM: ", self.model.randomStatus)
+            self.estrategyActions()
