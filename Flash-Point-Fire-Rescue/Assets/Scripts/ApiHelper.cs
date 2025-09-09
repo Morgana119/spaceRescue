@@ -10,6 +10,8 @@ public class ActionPayload
     public string action;
     public int x;
     public int y;
+    public string agent;   
+    public string kind; 
 }
 
 [System.Serializable]
@@ -61,48 +63,51 @@ public class ApiHelper : MonoBehaviour
 
                 if (lastFullState != null && lastFullState.actions != null)
                 {
-                    foreach (var act in lastFullState.actions)
-                    {
-                        Debug.Log($"Acción recibida: {act.action} en ({act.x},{act.y}) desde {act.source}");
+                    var agentActions = lastFullState.actions.Where(a => a.source == "agent").ToArray();
+                    var modelActions = lastFullState.actions.Where(a => a.source == "model").ToArray();
 
-                        if (act.source == "model")
-                        {
-                            if (gridFireManager != null)
-                            {
-                                if (act.action == "ignite")
-                                {
-                                    gridFireManager.ApplyChange("fire", act.x, act.y);
-                                }
-                                else if (act.action == "smoke")
-                                {
-                                    gridFireManager.ApplyChange("smoke", act.x, act.y);
-                                }
-                                else if (act.action == "stopSmoke")
-                                {
-                                    gridFireManager.ApplyChange("stopSmoke", act.x, act.y);
-                                }
-                                else if (act.action == "extinguish")
-                                {
-                                    gridFireManager.ApplyChange("extinguish", act.x, act.y);
-                                }
-                            }
-                        }
-                        else if (act.source == "agent")
-                        {
-                            if (agentManager != null)
-                            {
-                                if (act.action == "move")
-                                {
+                    foreach (var act in agentActions)
+                    {   
+                        Debug.Log($"[ApiHelper] Acción recibida: {act.action} en ({act.x},{act.y}) desde {act.source}");
+                        ApplyAgentAction(act);
+                        yield return new WaitForSeconds(actionDelay);
+                    }
 
-                                }
-                            }
-                        }
-
-                        // ⏱️ Espera antes de aplicar la siguiente acción
+                    foreach (var act in modelActions)
+                    {   
+                        Debug.Log($"[ApiHelper] Acción recibida: {act.action} en ({act.x},{act.y}) desde {act.source}");
+                        ApplyModelAction(act);
                         yield return new WaitForSeconds(actionDelay);
                     }
                 }
             }
         }
     }
+
+    void ApplyAgentAction(ActionPayload act)
+    {
+        if (agentManager == null) return;
+
+        if (act.action == "extinguish")
+            gridFireManager.ApplyChange("extinguish", act.x, act.y);
+        else if (act.action == "smoke")
+            gridFireManager.ApplyChange("smoke", act.x, act.y);
+        else if (act.action == "stopSmoke")
+            gridFireManager.ApplyChange("stopSmoke", act.x, act.y);
+    }
+
+    void ApplyModelAction(ActionPayload act)
+    {
+        if (gridFireManager == null) return;
+
+        if (act.action == "ignite")
+            gridFireManager.ApplyChange("fire", act.x, act.y);
+        else if (act.action == "smoke")
+            gridFireManager.ApplyChange("smoke", act.x, act.y);
+        else if (act.action == "stopSmoke")
+            gridFireManager.ApplyChange("stopSmoke", act.x, act.y);
+        else if (act.action == "extinguish")
+            gridFireManager.ApplyChange("extinguish", act.x, act.y);
+    }
+
 }
