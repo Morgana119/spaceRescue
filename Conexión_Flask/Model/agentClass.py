@@ -50,6 +50,7 @@ class RobotAgent(Agent):
         self.health = 1
         self.carriesPOI = False
         self.pathfinder = Pathfinder(self)
+        self.posPOI = None
 
     def neighborCoords(self, d):
         # Calcula las coordenadas de la celda vecina en la dirección d
@@ -128,7 +129,7 @@ class RobotAgent(Agent):
                 return False
             dest.smoke = False
             self.actionPoints -= 1
-            self.model.actionsLog.append(('agent', self.idRobot, 'stopSmoke', nx, ny))
+            self.model.actionsLog.append(('agent', self.idRobot, 'stopSmoke', ny, nx))
             print(f"[Agente {self.idRobot}] STOP_SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -139,7 +140,8 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = True
             self.actionPoints -= 1
-            self.model.actionsLog.append(('agent', self.idRobot, 'fireToSmoke', nx, ny))
+            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
+            self.model.actionsLog.append(('agent', self.idRobot, 'smoke', ny, nx))
             print(f"[Agente {self.idRobot}] EXTINGUISH_FIRE→SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
         return False  
@@ -156,7 +158,7 @@ class RobotAgent(Agent):
             cell.fire = False
             cell.smoke = False
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', self.positionX, self.positionY))
+            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', self.positionY, self.positionX))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en propia {(self.positionX, self.positionY)}, AP={self.actionPoints}")
             return True
         else:
@@ -171,7 +173,7 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = False
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'fullExtinguish', nx, ny))
+            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -284,12 +286,13 @@ class RobotAgent(Agent):
                     if self.positionY == exit[0] and self.positionX == exit[1]:
                         self.carriesPOI = False
                         self.savedVictims += 1
+                        y, x = self.posPOI
+                        self.model.poisOnBoard.remove((y, x))
                         self.model.ensure3POI()
                         print("LENGHT:", len(self.model.poisOnBoard))
-                        self.model.poisOnBoard
                         print("LENGHT:", len(self.model.poisOnBoard))
                         print("POI", self.model.poisOnBoard)
-                        print("Carries POI to false")   
+                        print("Carries POI to false") 
 
                     break
             if not moved:

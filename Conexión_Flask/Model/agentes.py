@@ -35,8 +35,8 @@ import time
 import datetime
 import random
 
-
 from agentClass import RobotAgent
+from collections import deque
 
 class Cell:
     def __init__(self, x, y, walls):
@@ -129,7 +129,7 @@ class ExplorerModel(Model):
         self.poisOnBoard = set()   # {(x,y)}
 
         # Iniciales
-        initPOI = [(2, 4), (5, 1), (5, 8)]
+        initPOI = [(4, 2), (1, 5), (8, 5)]
         for (x, y) in initPOI:
             self.placeNewPOI(x, y, by_dice=False)
 
@@ -222,65 +222,54 @@ class ExplorerModel(Model):
                 fila.append(walls_str)
             print(fila)
     
-    def get_new_fires_payload(self):
-        return {"fires": [{"x": x, "y": y} for (x, y) in self.newFire]}
-
-    def get_new_smoke_payload(self):
-        return {"smokes": [{"x": x, "y": y} for (x, y) in self.newSmoke]}
-    
     def get_full_state(self):
-        agents = [
-            {
-                "name": agent.unique_id,
-                "x": agent.pos[0],
-                "y": 0,        # para Unity
-                "z": agent.pos[1]
-            }
-            for agent in self.schedule.agents
-        ]
+        actions_list = []
+        for act in self.actionsLog:
+            entry = {"source": act[0]}
 
-        fires = [
-            {"x": x, "y": y}
-            for y in range(self.height)
-            for x in range(self.width)
-            if self.grid[y][x].fire
-        ]
+            if act[0] == "model":
+                # acciones del modelo
+                if act[1] == "ignite":
+                    entry.update({"action": "ignite", "x": act[2], "y": act[3]})
+                elif act[1] == "smoke":
+                    entry.update({"action": "smoke", "x": act[2], "y": act[3]})
+                elif act[1] == "dice":
+                    entry.update({"action": "dice", "x": act[2], "y": act[3]})
+                elif act[1] == "poiPlaced":
+                    entry.update({"action": "poiPlaced", "x": act[2], "y": act[3]})
+                elif act[1] == "poiReveal":
+                    entry.update({"action": "poiReveal", "x": act[2], "y": act[3], "kind": act[4]})
+                elif act[1] == "knockdown":
+                    entry.update({"action": "knockdown", "agent": act[2], "x": act[3], "y": act[4]})
+                else:
+                    entry.update({"action": act[1], "data": act[2:]})
 
-        return {
-            "agents": agents,
-            "fires": fires
-        }
+            elif act[0] == "agent":
+                # acciones de agentes
+                entry.update({
+                    "agent": act[1],        # id del robot
+                    "action": act[2],       # acción que realizó
+                    "x": act[3], 
+                    "y": act[   4]
+                })
+
+            actions_list.append(entry)
+
+        state = {"actions": actions_list}
+
+        # limpiar después de mandar
+        self.actionsLog = []
+
+        return state
+
 
     def RollDice(self,):
         x = random.randint(1, self.width - 2)
         y = random.randint(1, self.height - 2) 
         return x, y
     
-    def placeFire(self, y, x, coordinate):
-        moves = {
-            0: (-1, 0),
-            1: (0, 1),
-            2: (1, 0),
-            3: (0, -1)
-        }
-        dy, dx = moves[coordinate]
-        ny, nx = y + dy, x + dx
-
-        # sigue buscando hasta que encuentra un lugar sin fuego
-        while 0 <= ny < len(self.grid) and 0 <= nx < len(self.grid[0]):
-            if not self.grid[ny][nx].fire:
-                self.grid[ny][nx].fire = True
-                print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dirección {coordinate} desde {(x, y)}")
-                fire = (y, x)
-                self.newFire.append(fire)
-                self.newlyIgnited.add((nx, ny))
-                self.actionsLog.append(('model', 'ignite', nx, ny))
-                break
-
-            ny += dy
-            nx += dx
-    
     def updateSmoke(self) : 
+        initial_ignition_points = set()
         for y in range(self.height):
             for x in range(self.width):
                 if self.grid[y][x].smoke == True:
@@ -289,9 +278,33 @@ class ExplorerModel(Model):
                         if 0 <= ny < self.height and 0 <= nx < self.width:
                             neighbor = self.grid[ny][nx]
                             if self.grid[ny][nx].fire == True: 
-                                self.grid[y][x].fire = True
-                                self.grid[y][x].smoke = False
-                                break
+                                initial_ignition_points.add((y, x))
+        for y, x in initial_ignition_points:
+            self.propagateFire(y, x)    
+
+    def propagateFire(self, y_start, x_start):
+        queue = deque()
+        processed_cells = set()
+
+        queue.append((y_start, x_start))
+        processed_cells.add((y_start, x_start))
+
+        while queue:
+            y, x = queue.popleft()
+            
+            self.grid[y][x].fire = True
+            self.grid[y][x].smoke = False
+            self.actionsLog.append(('model', 'stopSmoke', y, x))
+            self.actionsLog.append(('model', 'ignite', y, x))
+
+            for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                ny, nx = y + dy, x + dx
+
+                if 0 <= ny < self.height and 0 <= nx < self.width and (ny, nx) not in processed_cells:
+                    neighbor = self.grid[ny][nx]
+                    if neighbor.smoke:
+                        queue.append((ny, nx))
+                        processed_cells.add((ny, nx))
 
     def updateNeighbors(self, x, y, coordinate, newStatus):
         update = (coordinate + 2) % 4
@@ -312,52 +325,73 @@ class ExplorerModel(Model):
 
     def spreadFire(self, x, y):
         print(y, x)
-        if self.grid[y][x].fire == False and self.grid[y][x].smoke == False:
-            self.grid[y][x].smoke = True
-            smoke = (y, x)
-            self.newSmoke.append(smoke)
-            self.actionsLog.append(('model', 'smoke', x, y))
-        elif self.grid[y][x].fire == False and self.grid[y][x].smoke == True:
-            self.grid[y][x].smoke = False
-            self.grid[y][x].fire = True
-            fire = (y, x)
-            self.newFire.append(fire)
+        cell = self.grid[y][x]
+
+        if not cell.fire and not cell.smoke:
+            cell.smoke = True
+            self.actionsLog.append(('model', 'smoke', y, x))
+        
+        elif not cell.fire and cell.smoke:
+            cell.smoke = False
+            cell.fire = True
             self.newlyIgnited.add((x, y))
-            self.actionsLog.append(('model', 'ignite', x, y))
-
-
-        else : # explosion
+            self.actionsLog.append(('model', 'stopSmoke', y, x))
+            self.actionsLog.append(('model', 'ignite', y, x))
+        
+        else:
             print(f"[FIRE] ¡Explosión! en {(x, y)}")
-            for i in range(4):
+            self.handleExplosion(y, x)
 
-                # no hay pared ni nada
-                if self.grid[y][x].walls[i] == 0:
-                    print(f"[FIRE|EXPLODE] Paso libre hacia dir {i} → propagar")
-                    self.placeFire(y, x, i)
 
-                # hay una pared completa
-                elif self.grid[y][x].walls[i] == 1:
-                    # actualizar los vecinos de la pared dañada
-                    self.updateNeighbors(x, y, i, 2)
-                    self.grid[y][x].walls[i] = 2
-                    self.damagedWalls += 1
-                    print(f"[FIRE|EXPLODE] Pared completa dañada (1→2) en {(x, y)} dir {i}")
+    def handleExplosion(self, y, x):
+        for direction in range(4):
+            self.propagateExplosion(y, x, direction)
 
-                # hay una pared dañada
-                elif self.grid[y][x].walls[i] == 2:
-                    # ya no hay pared
-                    # actualizo vecinos que ya no hay pared
-                    self.updateNeighbors(x, y, i, 0)
-                    self.grid[y][x].walls[i] = 0
-                    self.damagedWalls += 1
-                    print(f"[FIRE|EXPLODE] Pared dañada colapsa (2→0) en {(x, y)} dir {i}")
 
-                # hay una puerta cerrada
-                elif self.grid[y][x].walls[i] == 3:
-                    # abro la puerta
-                    # actualizo vecinos que ya no hay pared
-                    self.updateNeighbors(x, y, i, 0)
-                    self.grid[y][x].walls[i] = 0
+    def propagateExplosion(self, y, x, direction):
+        moves = {0: (-1, 0), 1: (0, 1), 2: (1, 0), 3: (0, -1)}
+        dy, dx = moves[direction]
+        ny, nx = y + dy, x + dx
+
+        while 0 <= ny < self.height and 0 <= nx < self.width:
+            wall_status = self.grid[y][x].walls[direction]
+
+            if wall_status != 0:
+                self.damageWall(y, x, direction, wall_status)
+                break
+
+            neighbor = self.grid[ny][nx]
+
+            if not neighbor.fire:
+                neighbor.fire = True
+                neighbor.smoke = False
+                print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dir {direction} desde {(x, y)}")
+                self.newlyIgnited.add((ny, nx))
+                self.actionsLog.append(('model', 'ignite', ny, nx))
+                break
+
+            ny += dy
+            nx += dx
+
+
+    def damageWall(self, y, x, direction, wall_status):
+        if wall_status == 1:  # pared intacta → dañada
+            self.updateNeighbors(x, y, direction, 2)
+            self.grid[y][x].walls[direction] = 2
+            self.damagedWalls += 1
+            print(f"[FIRE|EXPLODE] Pared completa dañada (1→2) en {(x, y)} dir {direction}")
+
+        elif wall_status == 2:  # pared dañada → colapsa
+            self.updateNeighbors(x, y, direction, 0)
+            self.grid[y][x].walls[direction] = 0
+            self.damagedWalls += 1
+            print(f"[FIRE|EXPLODE] Pared dañada colapsa (2→0) en {(x, y)} dir {direction}")
+
+        elif wall_status == 3:  # puerta cerrada → abierta
+            self.updateNeighbors(x, y, direction, 0)
+            self.grid[y][x].walls[direction] = 0
+            print(f"[FIRE|EXPLODE] Puerta cerrada se abre en {(x, y)} dir {direction}")
+
 
     # Válida = dentro de tablero, sin fuego, sin otro POI.
     # Permitimos humo y agentes (si quieres evitar agentes, agrega un check a is_cell_empty).
@@ -395,31 +429,15 @@ class ExplorerModel(Model):
             print("[POI|PLACE] Mazo vacío: no se puede colocar más POI")
             return False
 
-        # if by_dice and not self.cellPOI(x, y):
-        #     # si nos dieron coords pero no es válida, ignora y busca por dados
-        #     # spot = self.dicePOI()
-        #     spot = x, y
-        #     if spot is None:
-        #         print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
-        #         return False
-        #     x, y = spot
-        # else:
-        #     if not self.cellPOI(x, y):
-        #         print(f"[POI|PLACE] Invalid spot {(x,y)}; reintentando con dados...")
-        #         spot = self.dicePOI()
-        #         if spot is None:
-        #             print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
-        #             return False
-        #         x, y = spot
 
         # Saca la carta del mazo y colócala oculta en la celda
         card = self.poiDeck.pop()   # 'V' o 'F', queda oculta
         print("CELL: ", x, y)
-        cell = self.grid[x][y]
+        cell = self.grid[y][x]
         cell.hasToken = True
         cell.poiHidden = card
-        self.poisOnBoard.add((x, y))
-        self.actionsLog.append(('model', 'poiPlaced', x, y))
+        self.poisOnBoard.add((y, x))
+        self.actionsLog.append(('model', 'poiPlaced', y, x))
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
         return True
 
@@ -445,9 +463,11 @@ class ExplorerModel(Model):
         kind = cell.poiHidden  # 'V' o 'F'
         cell.hasToken = False
         cell.poiHidden = None
-        if (y, x) in self.poisOnBoard:
-            print("Entro al remove ------------------------------------")
-            self.poisOnBoard.remove((y, x))
+
+        agent.posPOI = y, x
+        # if (y, x) in self.poisOnBoard:
+        #     print("Entro al remove ------------------------------------")
+        #     self.poisOnBoard.remove((y, x))
 
         if kind == 'V':
             agent.carriesPOI = True
@@ -523,10 +543,11 @@ class ExplorerModel(Model):
 
         # dinámica de fuego
         x, y = self.RollDice()
-        self.actionsLog.append(('model', 'dice', x, y))
+        self.actionsLog.append(('model', 'dice', y, x))
         print(f"[FIRE] Tirada de fuego desde {(x, y)}")
         self.spreadFire(x, y)
-        self.ensure3POI()
+        self.updateSmoke()
+        print("YA TERMINO DE EXPANDIR EL FUEGO")
 
         # Si alguien está en una casilla recién encendida, knockdown
         for a in self.agentList:
@@ -564,25 +585,22 @@ def gridArray(model):
 
 
 agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
-model = ExplorerModel(agent_names, False)
+model = ExplorerModel(agent_names, True)
 allGrids = []
 num_steps = 40  # cuántos pasos quieres simular desde el estado actual
 model.print_grid()
 print("----------------------")
 
-# for agent in model.agents:
-#     agent.carriesPOI = False
-#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
-#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+# # for agent in model.agents:
+# #     agent.carriesPOI = False
+# #     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+# #           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
 
-# while model.currentStep < num_steps:
-#     model.step()
-#     allGrids.append(gridArray(model))
-#     model.currentStep += 1 
-# model.print_grid()
-for agent in model.agents:
-    path, poi = agent.pathfinder.closestPOI()
-    print(f"[TEST] Agente {agent.idRobot} -> POI más cercano en {poi}, path: {path}")
+while model.currentStep < num_steps:
+    model.step()
+    allGrids.append(gridArray(model))
+    model.currentStep += 1 
+model.print_grid()
 
 # print("Estado inicial del tablero:")
 # model.print_grid()
@@ -591,6 +609,7 @@ for agent in model.agents:
 # for agent in model.agents:
 #     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
 #           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+
 
 # ------------- PRUEBA A* PARA 1 AGENTE ----------------------
 # agent = model.agents[0]  # tomar un agente cualquiera

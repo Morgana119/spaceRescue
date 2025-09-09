@@ -133,7 +133,8 @@ class Pathfinder:
                     # Para comportamiento aleatorio, solo usamos costo directo
                     if self.agent.rolRobot == 1: 
                         cost = 2 if cell.fire or self.agent.carriesPOI else 1
-                        best_action = None
+                        best_action = 'moverse'
+                        action_cost = 1
                 else:
                     # print("Entro al no random")
                     # Aquí sigue la lógica de prioridad y costo real según rol
