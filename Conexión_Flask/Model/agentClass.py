@@ -50,6 +50,7 @@ class RobotAgent(Agent):
         self.health = 1
         self.carriesPOI = False
         self.pathfinder = Pathfinder(self)
+        self.posPOI = None
 
     def neighborCoords(self, d):
         # Calcula las coordenadas de la celda vecina en la dirección d
@@ -260,11 +261,13 @@ class RobotAgent(Agent):
         path, exit = pathfinder.closestExit()
         print("Path:_", path)
         print("EXIT: ", exit)
-        path = [pos for pos, _ in path]
 
         if not path or len(path) == 0:
             print(f"[Agente {self.idRobot}] No hay camino a la salida")
             return
+        
+        path = [pos for pos, _ in path]
+
         
         dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
         
@@ -273,9 +276,9 @@ class RobotAgent(Agent):
             # solo moverse si es vecino
             moved = False
             for d, (dy, dx) in enumerate(dirs):
-                print("MOVE: ", d, dy, dx)
+                # print("MOVE: ", d, dy, dx)
                 # PARA PROBAR EL SAVE VICTIMS SE RESTABLECE SUS AP A 4 
-                if self.actionPoints <= 0: self.actionPoints = 4
+                # if self.actionPoints <= 0: self.actionPoints = 4
                 
                 if self.positionY + dy == next_y and self.positionX + dx == next_x:
                     moved = self.move(d)
@@ -283,7 +286,13 @@ class RobotAgent(Agent):
                     if self.positionY == exit[0] and self.positionX == exit[1]:
                         self.carriesPOI = False
                         self.savedVictims += 1
-                        print("Carries POI to false")   
+                        y, x = self.posPOI
+                        self.model.poisOnBoard.remove((y, x))
+                        self.model.ensure3POI()
+                        print("LENGHT:", len(self.model.poisOnBoard))
+                        print("LENGHT:", len(self.model.poisOnBoard))
+                        print("POI", self.model.poisOnBoard)
+                        print("Carries POI to false") 
 
                     break
             if not moved:

@@ -35,8 +35,12 @@ import time
 import datetime
 import random
 
+<<<<<<< HEAD
 from .agentClass import RobotAgent
 from collections import deque
+=======
+from agentClass import RobotAgent
+>>>>>>> kami/fixGrid
 
 class Cell:
     def __init__(self, x, y, walls):
@@ -90,7 +94,7 @@ class ExplorerModel(Model):
             ["0100","0011","0110","0011","0030","0010","0310","0013","0010","0001"],
             ["0100","1001","1000","1000","3000","1100","1001","1100","1101","0001"],
             ["0100","0011","0010","0000","0010","0310","0013","0310","0113","0001"],
-            ["0000","1000","1000","1000","1000","1000","1000","1000","1000","1000"]
+            ["0000","1000","1000","1000","1000","1000","1000","1000","1000","0000"]
         ]
         gridValues2 = [
             ["0000","0010","0010","0010","0010","0010","0000","0010","0010","0000"],
@@ -100,7 +104,7 @@ class ExplorerModel(Model):
             ["0100","0011","0110","0011","0000","0010","0010","0010","0010","0000"],
             ["0100","1001","1000","1000","0000","1100","1001","1100","1101","0001"],
             ["0100","0011","0010","0000","0010","0010","0010","0010","0110","0001"],
-            ["0000","1000","1000","0000","1000","1000","1000","1000","1000","1000"]
+            ["0000","1000","1000","0000","1000","1000","1000","1000","1000","0000"]
         ]
 
         self.grid = [
@@ -125,7 +129,7 @@ class ExplorerModel(Model):
         self.poisOnBoard = set()   # {(x,y)}
 
         # Iniciales
-        initPOI = [(2, 4), (5, 1), (5, 8)]
+        initPOI = [(4, 2), (1, 5), (8, 5)]
         for (x, y) in initPOI:
             self.placeNewPOI(x, y, by_dice=False)
 
@@ -408,46 +412,52 @@ class ExplorerModel(Model):
     
     # Elige coordenadas con dados (RollDice) hasta encontrar una celda válida
     def dicePOI(self, max_tries=500):
+        print("Entro al roll dice:")
         for _ in range(max_tries):
-            x, y = self.RollDice()          
+            x, y = self.RollDice() 
+            print("DICE", x,y, "----------------------------------------------------------------")       
             if self.cellPOI(x, y):
                 return (x, y)
         return None
     
     # Coloca un POI boca abajo sacando del mazo. Si by_dice=True y la celda no sirve, reintenta por dados
     def placeNewPOI(self, x, y, by_dice=True):
+        print("Entro al place New POI------------------------------------------------------")
         if not self.poiDeck:
             print("[POI|PLACE] Mazo vacío: no se puede colocar más POI")
             return False
 
-        if by_dice and not self.cellPOI(x, y):
-            # si nos dieron coords pero no es válida, ignora y busca por dados
-            spot = self.dicePOI()
-            if spot is None:
-                print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
-                return False
-            x, y = spot
-        else:
-            if not self.cellPOI(x, y):
-                print(f"[POI|PLACE] Invalid spot {(x,y)}; reintentando con dados...")
-                spot = self.dicePOI()
-                if spot is None:
-                    print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
-                    return False
-                x, y = spot
+        # if by_dice and not self.cellPOI(x, y):
+        #     # si nos dieron coords pero no es válida, ignora y busca por dados
+        #     # spot = self.dicePOI()
+        #     spot = x, y
+        #     if spot is None:
+        #         print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
+        #         return False
+        #     x, y = spot
+        # else:
+        #     if not self.cellPOI(x, y):
+        #         print(f"[POI|PLACE] Invalid spot {(x,y)}; reintentando con dados...")
+        #         spot = self.dicePOI()
+        #         if spot is None:
+        #             print("[POI|PLACE] No hay lugar válido para colocar POI (dados)")
+        #             return False
+        #         x, y = spot
 
         # Saca la carta del mazo y colócala oculta en la celda
         card = self.poiDeck.pop()   # 'V' o 'F', queda oculta
+        print("CELL: ", x, y)
         cell = self.grid[y][x]
         cell.hasToken = True
         cell.poiHidden = card
-        self.poisOnBoard.add((x, y))
+        self.poisOnBoard.add((y, x))
         self.actionsLog.append(('model', 'poiPlaced', y, x))
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
         return True
 
     # Mantiene 3 POI en tablero mientras quede mazo; coloca por 'dados'
     def ensure3POI(self):
+        print("Entro al ensure#POI")
         while len(self.poisOnBoard) < 3 and self.poiDeck:
             spot = self.dicePOI()
             if spot is None:
@@ -479,6 +489,7 @@ class ExplorerModel(Model):
     
     # Se llama cuando el agente entra a la celda (x,y) con un POI
     def revealPOI(self, x, y, agent):
+        print("ENTRO A REVEAL POI --------------------------------------------------------")
         cell = self.grid[y][x]
         if not cell.hasToken:
             return
@@ -486,8 +497,11 @@ class ExplorerModel(Model):
         kind = cell.poiHidden  # 'V' o 'F'
         cell.hasToken = False
         cell.poiHidden = None
-        if (x, y) in self.poisOnBoard:
-            self.poisOnBoard.remove((x, y))
+
+        agent.posPOI = y, x
+        # if (y, x) in self.poisOnBoard:
+        #     print("Entro al remove ------------------------------------")
+        #     self.poisOnBoard.remove((y, x))
 
         if kind == 'V':
             agent.carriesPOI = True
@@ -499,7 +513,7 @@ class ExplorerModel(Model):
         
         self.actionsLog.append(('model', 'poiReveal', x, y, kind))  # kind: 'V' o 'F'
         # Reponer hasta 3 por dados
-        self.ensure3POI()
+        # self.ensure3POI()
     
     # Escoge la ambulancia más cercana por distancia Manhattan
     def nearestAmbulance(self, x, y):
@@ -532,19 +546,19 @@ class ExplorerModel(Model):
         # Colapso edificio
         if self.damagedWalls >= self.maxDamagedWalls:
             print("[GAME OVER] El edificio colapsó")
-            return True, "LOSE"
+            return False, "LOSE"
 
         # Demasiadas víctimas muertas
         if self.deadVictims >= self.maxDeadVictims:
             print("[GAME OVER] Han muerto 4 víctimas")
-            return True, "LOSE"
+            return False, "LOSE"
 
         # Suficientes víctimas rescatadas
         if self.savedVictims >= self.victimsToSave:
             print("[VICTORY] Se rescataron 7 víctimas")
-            return True, "WIN"
+            return False, "WIN"
 
-        return False, None
+        return True, None
 
     def step(self):
         self.actionsLog = []
@@ -554,7 +568,8 @@ class ExplorerModel(Model):
 
         # agente del turno actual
         agent = self.agentList[self.current_turn]
-        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
+        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionY, agent.positionX)}")
+
         agent.step()  # este agente gasta hasta 4 PA en su propio step()
 
         # avanza el turno de forma cíclica
@@ -566,7 +581,7 @@ class ExplorerModel(Model):
         print(f"[FIRE] Tirada de fuego desde {(x, y)}")
         self.spreadFire(x, y)
         self.updateSmoke()
-        self.ensure3POI()
+        print("YA TERMINO DE EXPANDIR EL FUEGO")
 
         # Si alguien está en una casilla recién encendida, knockdown
         for a in self.agentList:
@@ -607,7 +622,7 @@ agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 model = ExplorerModel(agent_names)
 #model.randomStatus = False
 allGrids = []
-num_steps = 10  # cuántos pasos quieres simular desde el estado actual
+num_steps = 300  # cuántos pasos quieres simular desde el estado actual
 model.print_grid()
 print("----------------------")
 
@@ -616,10 +631,7 @@ print("----------------------")
 #     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
 #           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
 
-model.agents[0].carriesPOI = True
-model.agents[1].carriesPOI = True
-
-while model.checkGameOver():
+while model.currentStep < num_steps:
     model.step()
     allGrids.append(gridArray(model))
     model.currentStep += 1 
