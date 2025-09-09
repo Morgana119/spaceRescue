@@ -103,7 +103,7 @@ class ExplorerModel(Model):
         ]
 
         self.grid = [
-                [Cell(x, y, walls=[int(d) for d in gridValues2[y][x]])
+                [Cell(x, y, walls=[int(d) for d in gridValues[y][x]])
                 for x in range(self.width)]
                 for y in range(self.height)
             ]
@@ -129,15 +129,6 @@ class ExplorerModel(Model):
         initPOI = [(4, 2), (1, 5), (8, 5)]
         for (x, y) in initPOI:
             self.placeNewPOI(x, y, by_dice=False)
-
-        # Si alguna no pudo (fuego, fuera, agente, etc.), rellena por dados hasta llegar a 3
-        self.ensure3POI()
-        print(f"[POI|INIT] POIs en tablero: {sorted(list(self.poiPositions))} | mazo={len(self.poiDeck)}")
-
-        self.poiDeck = ['V'] * 10 + ['F'] * 5
-        self.random.shuffle(self.poiDeck)
-        self.poiPositions = [] 
-
 
         # Si alguna no pudo (fuego, fuera, agente, etc.), rellena por dados hasta llegar a 3
         self.ensure3POI()
@@ -617,9 +608,9 @@ model.print_grid()
 # model.print_grid()
 # print("----------------------")
 
-# for agent in model.agents:
-#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
-#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+for agent in model.agents:
+    print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+          f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
 
 
 # ------------- PRUEBA A* PARA 1 AGENTE ----------------------

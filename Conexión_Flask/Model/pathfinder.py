@@ -191,7 +191,7 @@ class Pathfinder:
     def closestExit(self):
         print(self.agent.idRobot,"Entro al closes Exit", flush=True)
         print("PUNTOS DE ACCION ",self.agent.actionPoints)
-        print("POI", self.model.poisOnBoard)
+        print("POI", self.model.poiPositions)
         exits = self.agent.model.exitPositions
 
         if (self.agent.positionY, self.agent.positionX) in exits:
@@ -215,7 +215,7 @@ class Pathfinder:
     ## Encontrar un POI
     def closestPOI(self):
         print("Entro al closest POI")
-        pois = self.agent.model.poisOnBoard
+        pois = self.agent.model.poiPositions
 
         if (self.agent.positionY, self.agent.positionX) in pois:
             print(f"POI {self.agent.idRobot} YA ESTÁ en un poi -> no busca más")
