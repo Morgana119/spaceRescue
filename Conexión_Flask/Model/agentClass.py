@@ -50,6 +50,7 @@ class RobotAgent(Agent):
         self.health = 1
         self.carriesPOI = False
         self.pathfinder = Pathfinder(self)
+        self.posPOI = None
 
     def neighborCoords(self, d):
         # Calcula las coordenadas de la celda vecina en la dirección d
@@ -285,12 +286,13 @@ class RobotAgent(Agent):
                     if self.positionY == exit[0] and self.positionX == exit[1]:
                         self.carriesPOI = False
                         self.savedVictims += 1
+                        y, x = self.posPOI
+                        self.model.poisOnBoard.remove((y, x))
                         self.model.ensure3POI()
                         print("LENGHT:", len(self.model.poisOnBoard))
-                        self.model.poisOnBoard
                         print("LENGHT:", len(self.model.poisOnBoard))
                         print("POI", self.model.poisOnBoard)
-                        print("Carries POI to false")   
+                        print("Carries POI to false") 
 
                     break
             if not moved:

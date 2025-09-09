@@ -35,7 +35,6 @@ import time
 import datetime
 import random
 
-
 from agentClass import RobotAgent
 
 class Cell:
@@ -91,7 +90,7 @@ class ExplorerModel(Model):
             ["0100","0011","0110","0011","0030","0010","0310","0013","0010","0001"],
             ["0100","1001","1000","1000","3000","1100","1001","1100","1101","0001"],
             ["0100","0011","0010","0000","0010","0310","0013","0310","0113","0001"],
-            ["0000","1000","1000","1000","1000","1000","1000","1000","1000","1000"]
+            ["0000","1000","1000","1000","1000","1000","1000","1000","1000","0000"]
         ]
         gridValues2 = [
             ["0000","0010","0010","0010","0010","0010","0000","0010","0010","0000"],
@@ -101,7 +100,7 @@ class ExplorerModel(Model):
             ["0100","0011","0110","0011","0000","0010","0010","0010","0010","0000"],
             ["0100","1001","1000","1000","0000","1100","1001","1100","1101","0001"],
             ["0100","0011","0010","0000","0010","0010","0010","0010","0110","0001"],
-            ["0000","1000","1000","0000","1000","1000","1000","1000","1000","1000"]
+            ["0000","1000","1000","0000","1000","1000","1000","1000","1000","0000"]
         ]
 
         self.grid = [
@@ -126,7 +125,7 @@ class ExplorerModel(Model):
         self.poisOnBoard = set()   # {(x,y)}
 
         # Iniciales
-        initPOI = [(2, 4), (5, 1), (5, 8)]
+        initPOI = [(4, 2), (1, 5), (8, 5)]
         for (x, y) in initPOI:
             self.placeNewPOI(x, y, by_dice=False)
 
@@ -410,11 +409,11 @@ class ExplorerModel(Model):
         # Saca la carta del mazo y colócala oculta en la celda
         card = self.poiDeck.pop()   # 'V' o 'F', queda oculta
         print("CELL: ", x, y)
-        cell = self.grid[x][y]
+        cell = self.grid[y][x]
         cell.hasToken = True
         cell.poiHidden = card
-        self.poisOnBoard.add((x, y))
-        self.actionsLog.append(('model', 'poiPlaced', x, y))
+        self.poisOnBoard.add((y, x))
+        self.actionsLog.append(('model', 'poiPlaced', y, x))
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
         return True
 
@@ -440,9 +439,11 @@ class ExplorerModel(Model):
         kind = cell.poiHidden  # 'V' o 'F'
         cell.hasToken = False
         cell.poiHidden = None
-        if (y, x) in self.poisOnBoard:
-            print("Entro al remove ------------------------------------")
-            self.poisOnBoard.remove((y, x))
+
+        agent.posPOI = y, x
+        # if (y, x) in self.poisOnBoard:
+        #     print("Entro al remove ------------------------------------")
+        #     self.poisOnBoard.remove((y, x))
 
         if kind == 'V':
             agent.carriesPOI = True
@@ -521,7 +522,7 @@ class ExplorerModel(Model):
         self.actionsLog.append(('model', 'dice', x, y))
         print(f"[FIRE] Tirada de fuego desde {(x, y)}")
         self.spreadFire(x, y)
-        self.ensure3POI()
+        print("YA TERMINO DE EXPANDIR EL FUEGO")
 
         # Si alguien está en una casilla recién encendida, knockdown
         for a in self.agentList:
@@ -562,7 +563,7 @@ agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 model = ExplorerModel(agent_names)
 #model.randomStatus = False
 allGrids = []
-num_steps = 40  # cuántos pasos quieres simular desde el estado actual
+num_steps = 300  # cuántos pasos quieres simular desde el estado actual
 model.print_grid()
 print("----------------------")
 
