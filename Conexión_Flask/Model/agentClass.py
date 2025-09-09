@@ -142,6 +142,9 @@ class RobotAgent(Agent):
             self.actionPoints -= 1
             self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
             self.model.actionsLog.append(('agent', self.idRobot, 'smoke', ny, nx))
+            
+            
+            
             print(f"[Agente {self.idRobot}] EXTINGUISH_FIRE→SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
         return False  

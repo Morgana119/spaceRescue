@@ -241,6 +241,8 @@ class ExplorerModel(Model):
                     entry.update({"action": "poiReveal", "x": act[2], "y": act[3], "kind": act[4]})
                 elif act[1] == "knockdown":
                     entry.update({"action": "knockdown", "agent": act[2], "x": act[3], "y": act[4]})
+                elif act[1] == "openDoor":
+                    entry.update({"action": "openDoor", "x": act[2], "y": act[3], "direction": act[4]})
                 else:
                     entry.update({"action": act[1], "data": act[2:]})
 
@@ -390,7 +392,9 @@ class ExplorerModel(Model):
         elif wall_status == 3:  # puerta cerrada → abierta
             self.updateNeighbors(x, y, direction, 0)
             self.grid[y][x].walls[direction] = 0
+            self.actionsLog.append(('model', 'openDoor', y, x, direction))
             print(f"[FIRE|EXPLODE] Puerta cerrada se abre en {(x, y)} dir {direction}")
+        
 
 
     # Válida = dentro de tablero, sin fuego, sin otro POI.
