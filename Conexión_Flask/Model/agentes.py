@@ -126,7 +126,7 @@ class ExplorerModel(Model):
         self.poiPositions = []
 
         # Iniciales
-        initPOI = [(2, 4), (5, 1), (5, 8)]
+        initPOI = [(4, 2), (1, 5), (8, 5)]
         for (x, y) in initPOI:
             self.placeNewPOI(x, y, by_dice=False)
 
@@ -138,10 +138,6 @@ class ExplorerModel(Model):
         self.random.shuffle(self.poiDeck)
         self.poiPositions = [] 
 
-        # Iniciales
-        posPOIS = [(2, 4), (5, 1), (5, 8)]
-        for (x, y) in posPOIS:
-            self.placeNewPOI(x, y, by_dice=False)
 
         # Si alguna no pudo (fuego, fuera, agente, etc.), rellena por dados hasta llegar a 3
         self.ensure3POI()
