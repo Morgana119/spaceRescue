@@ -5638,7 +5638,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7584861761010575290, guid: 01218fd4378fc4fea924edf810908003, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -26.24
+      value: -25.24
       objectReference: {fileID: 0}
     - target: {fileID: 7584861761010575290, guid: 01218fd4378fc4fea924edf810908003, type: 3}
       propertyPath: m_LocalRotation.w
@@ -15637,8 +15637,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   url: http://127.0.0.1:5000
-  updateInterval: 3
-  actionDelay: 2
+  updateInterval: 2
+  actionDelay: 0.3
   gridFireManager: {fileID: 1434204247}
   doorsManager: {fileID: 1605894455}
   agentManager: {fileID: 1492241360}
@@ -18001,7 +18001,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   firePrefab: {fileID: 3775074660981877587, guid: b1c1ca34496ed2840998c163353764a6, type: 3}
   openDoorPrefab: {fileID: 2465231875180777672, guid: 346496820ec20214aa0348b45b8dc3d1, type: 3}
-  offset: 0.5
+  offset: 1.5
 --- !u!1001 &1608057096
 PrefabInstance:
   m_ObjectHideFlags: 0

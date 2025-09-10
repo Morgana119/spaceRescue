@@ -35,7 +35,7 @@ import time
 import datetime
 import random
 
-from agentClass import RobotAgent
+from .agentClass import RobotAgent
 from collections import deque
 
 class Cell:
@@ -248,13 +248,21 @@ class ExplorerModel(Model):
                     entry.update({"action": act[1], "data": act[2:]})
 
             elif act[0] == "agent":
-                # acciones de agentes
-                entry.update({
-                    "agent": act[1],        # id del robot
-                    "action": act[2],       # acción que realizó
-                    "x": act[3], 
-                    "y": act[   4]
-                })
+                if act[2] == "breakWall" or act[2] == "weakenWall" or act[2] == "openDoor": 
+                    entry.update({
+                        "agent": act[1],        # id del robot
+                        "action": act[2],       # acción que realizó
+                        "x": act[3], 
+                        "y": act[4],
+                        "direction" : act[5]
+                    })
+                else:
+                    entry.update({
+                        "agent": act[1],        # id del robot
+                        "action": act[2],       # acción que realizó
+                        "x": act[3], 
+                        "y": act[4]
+                    })
 
             actions_list.append(entry)
 
@@ -417,7 +425,7 @@ class ExplorerModel(Model):
                 neighbor.smoke = False
                 print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dir {direction} desde {(x, y)}")
                 self.newlyIgnited.add((ny, nx))
-                self.firePositions.append((x, y))
+                self.firePositions.append((nx, ny))
                 self.actionsLog.append(('model', 'ignite', ny, nx))
                 break
 
@@ -636,17 +644,17 @@ def gridArray(model):
     return arr
 
 
-# agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
-# model = ExplorerModel(agent_names, True)
-# allGrids = []
-# num_steps = 40  # cuántos pasos quieres simular desde el estado actual
-# model.print_grid()
-# print("----------------------")
-# while model.checkGameOver():
-#     model.step()
-#     allGrids.append(gridArray(model))
-#     model.currentStep += 1
-# model.print_grid()
+agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+model = ExplorerModel(agent_names, True)
+allGrids = []
+num_steps = 40  # cuántos pasos quieres simular desde el estado actual
+model.print_grid()
+print("----------------------")
+while model.checkGameOver():
+    model.step()
+    allGrids.append(gridArray(model))
+    model.currentStep += 1
+model.print_grid()
 
 # print("Estado inicial del tablero:")
 # model.print_grid()

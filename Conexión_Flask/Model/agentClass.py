@@ -35,7 +35,7 @@ import time
 import datetime
 import random
 
-from pathfinder import Pathfinder
+from .pathfinder import Pathfinder
 
 class RobotAgent(Agent):
     def __init__(self,name, model):
@@ -162,6 +162,7 @@ class RobotAgent(Agent):
             cell.fire = False
             cell.smoke = False
             self.actionPoints -= 2
+            self.model.firePositions.remove((self.positionX, self.positionY))
             self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', self.positionY, self.positionX))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en propia {(self.positionX, self.positionY)}, AP={self.actionPoints}")
             return True
@@ -177,6 +178,7 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = False
             self.actionPoints -= 2
+            self.model.firePositions.remove((nx, ny))
             self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en {(nx, ny)}, AP={self.actionPoints}")
             return True
@@ -203,6 +205,7 @@ class RobotAgent(Agent):
             self.model.grid[y][x].walls[d] = 2
             self.model.damagedWalls += 1
             self.actionPoints -= 2
+            print("%%%%%%%%%% DIRECTION %%%%%%%%%%%%", d)
             self.model.actionsLog.append(('agent', self.idRobot, 'weakenWall', x, y, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (debilitar 1→2) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
