@@ -1,10 +1,11 @@
 # Changelog
 
-# [Ale/estrategy_mode] (09/09/2025)
+# [Ale/estrategy_mode] (10/09/2025)
 
 ### Added
 - save pairs in a tuple list
 - getPosPair method
+- add missing actions to estrategyActions()
 
 # [fa/saveVictim] (09/09/2025)
 

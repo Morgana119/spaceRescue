@@ -84,7 +84,7 @@ class RobotAgent(Agent):
             print("Destino con FUEGO MOVE Y LLEVA POI", dest.fire,self.carriesPOI)
             return False
 
-        # costo: 2 si es fuego, 2 si lleva POI, sino 1
+        # costo: 2 si es fuego, sino 1
         cost = 2 if dest.fire or self.carriesPOI else 1
         if self.actionPoints < cost: 
             print("MOVE AP NOT ENOUGH", self.actionPoints)
@@ -346,7 +346,6 @@ class RobotAgent(Agent):
                         break
                     
                     if action == 'move':
-                        # revisar qué dirección corresponde
                         dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
                         for d, (dy, dx) in enumerate(dirs):
                             if self.positionY + dy == y and self.positionX + dx == x:
@@ -354,16 +353,27 @@ class RobotAgent(Agent):
                                 print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
                                 break
                     elif action == 'putOutFire':
-                        # revisar qué dirección corresponde
                         dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
                         for d, (dy, dx) in enumerate(dirs):
                             if self.positionY + dy == y and self.positionX + dx == x:
                                 moved = self.extinguishFireFull(d)
                                 print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
                                 break
-                    #elif action == 'putOutSmoke':
+                    elif action == 'putOutSmoke':
+                        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                        for d, (dy, dx) in enumerate(dirs):
+                            if self.positionY + dy == y and self.positionX + dx == x:
+                                moved = self.stopFire(d)
+                                print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                break
+                    elif action == 'partiallyPutOutFire':
+                        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                        for d, (dy, dx) in enumerate(dirs):
+                            if self.positionY + dy == y and self.positionX + dx == x:
+                                moved = self.stopFire(d)
+                                print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                break
                     elif action == 'openDoor':
-                        # revisar qué dirección corresponde
                         dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
                         for d, (dy, dx) in enumerate(dirs):
                             if self.positionY + dy == y and self.positionX + dx == x:
@@ -371,11 +381,17 @@ class RobotAgent(Agent):
                                 print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
                                 break
                     elif action == 'knowckDownWall':
-                        # revisar qué dirección corresponde
                         dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
                         for d, (dy, dx) in enumerate(dirs):
                             if self.positionY + dy == y and self.positionX + dx == x:
                                 moved = self.breakWall(d)
+                                print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                break
+                    elif action == 'moveToFire':
+                        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                        for d, (dy, dx) in enumerate(dirs):
+                            if self.positionY + dy == y and self.positionX + dx == x:
+                                moved = self.move(d)
                                 print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
                                 break
         else:
