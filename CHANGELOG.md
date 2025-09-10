@@ -1,5 +1,11 @@
 # Changelog
 
+# [Ale/estrategy_mode] (09/09/2025)
+
+### Added
+- save pairs in a tuple list
+- getPosPair method
+
 # [fa/saveVictim] (09/09/2025)
 
 ### Added

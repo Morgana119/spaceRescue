@@ -179,10 +179,12 @@ class ExplorerModel(Model):
     # Definir parejas -> model.assignPairs
     def assignPairs(self):
         entrances = [(6,0), (0,3), (3,7), (9,4)]
-        pairs = [(self.agentList[i], self.agentList[i+1]) for i in range(0, len(self.agentList)-1, 2)]
-        chosen = self.random.sample(entrances, k=min(3, len(pairs), len(entrances)))
+        self.pairs = [(self.agentList[i], self.agentList[i+1]) 
+                        for i in range(0, len(self.agentList)-1, 2)]
 
-        for (a1, a2), (ex, ey) in zip(pairs, chosen):
+        chosen = self.random.sample(entrances, k=min(3, len(self.pairs), len(entrances)))
+
+        for (a1, a2), (ex, ey) in zip(self.pairs, chosen):
             # a1 directo en la entrada
             self.agentsGrid.place_agent(a1, (ex, ey))
             a1.positionX, a1.positionY = ex, ey
@@ -208,6 +210,16 @@ class ExplorerModel(Model):
                         a2.positionX, a2.positionY = fx, fy
                         print(f"[INIT] {a2.idRobot} en {(fx, fy)} (fallback)")
                         break
+    
+    def getPosPair(self, idRobot):
+        for a1, a2 in self.pairs:
+            if a1.idRobot == idRobot:
+                print("POS A1", a2.positionX, a2.positionY)
+                return (a2.positionX, a2.positionY)
+            elif a2.idRobot == idRobot:
+                print("POS A2", a2.positionX, a2.positionY)
+                return (a1.positionX, a1.positionY)
+        return None
     
     def print_grid(self):
         for y in range(self.height):
@@ -637,15 +649,16 @@ def gridArray(model):
     return arr
 
 
-agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+agent_names = ["purple", "pink", "red", "blue", "orange", "green"]
 num_steps = 50 # cuántos pasos quieres simular desde el estado actual
-ITERATIONS = 100
+ITERATIONS = 1
 results = []  # víctimas salvadas en cada simulación
 
 for i in range(ITERATIONS):
     print("ITERATION: ", i)
     model = ExplorerModel(agent_names, False)
     allGrids = []
+    model.getPosPair("purple")
     model.print_grid()
     print("----------------------")
 
