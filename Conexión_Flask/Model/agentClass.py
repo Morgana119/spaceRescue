@@ -305,7 +305,8 @@ class RobotAgent(Agent):
     # def damaged(self):}
 
     def estrategyActions(self):
-        self.pathfinder.closestPOI()
+        pathPOI = self.pathfinder.closestPOI()
+        print("Entro al estrategy Action: ", pathPOI)
         
 
     def step(self):

@@ -94,7 +94,7 @@ class ExplorerModel(Model):
         gridValues2 = [
             ["0000","0010","0010","0010","0010","0010","0000","0010","0010","0000"],
             ["0100","1001","1000","1000","1000","1100","0001","1000","1100","0001"],
-            ["0100","0001","0000","0110","0011","0010","0010","0010","0100","0001"],
+            ["0100","0101","0000","0110","0011","0010","0010","0010","0100","0001"],
             ["0000","0000","0000","1000","1000","1000","1100","1001","0100","0001"],
             ["0100","0011","0110","0011","0000","0010","0010","0010","0010","0000"],
             ["0100","1001","1000","1000","0000","1100","1001","1100","1101","0001"],
@@ -103,7 +103,7 @@ class ExplorerModel(Model):
         ]
 
         self.grid = [
-                [Cell(x, y, walls=[int(d) for d in gridValues[y][x]])
+                [Cell(x, y, walls=[int(d) for d in gridValues2[y][x]])
                 for x in range(self.width)]
                 for y in range(self.height)
             ]
@@ -114,13 +114,14 @@ class ExplorerModel(Model):
             self.grid[y][x].fire = True
         print(f"[INIT] Fuego inicial en: {self.firePositions}")
         
-        self.exitPositions = [(0,6), (3,0), (7,3), (4,9)]
-        for y, x in self.exitPositions:
+        self.exitPositions = [(6,0), (0,3), (3,7), (9,4)]
+        for x, y in self.exitPositions:
             self.grid[y][x].isExit = True
         print(f"[INIT] Puertas inicial en: {self.exitPositions}")
 
-        for y, x in self.firePositions:
-            print(f"[DEBUG] FUEGO inicial en: {y,x, self.grid[y][x].fire}")
+        for x, y in self.firePositions:
+            print(f"[DEBUG] FUEGO inicial en: {x,y, self.grid[y][x].fire}")
+
         self.poiDeck = ['V'] * 10 + ['F'] * 5
         self.random.shuffle(self.poiDeck)
         self.poiPositions = []
@@ -181,7 +182,7 @@ class ExplorerModel(Model):
 
     # Definir parejas -> model.assignPairs
     def assignPairs(self):
-        entrances = [(0,6), (9,4), (3,7), (1,3)]
+        entrances = [(6,0), (0,3), (3,7), (9,4)]
         pairs = [(self.agentList[i], self.agentList[i+1]) for i in range(0, len(self.agentList)-1, 2)]
         chosen = self.random.sample(entrances, k=min(3, len(pairs), len(entrances)))
 
@@ -332,7 +333,6 @@ class ExplorerModel(Model):
         return (self.damagedWalls == 24)
 
     def spreadFire(self, x, y):
-        print(y, x)
         cell = self.grid[y][x]
 
         if not cell.fire and not cell.smoke:
@@ -595,10 +595,11 @@ def gridArray(model):
 agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 model = ExplorerModel(agent_names, True)
 allGrids = []
-num_steps = 40  # cuántos pasos quieres simular desde el estado actual
+num_steps = 6 # cuántos pasos quieres simular desde el estado actual
 model.print_grid()
 print("----------------------")
 while model.checkGameOver():
+# while model.currentStep < num_steps:
     model.step()
     allGrids.append(gridArray(model))
     model.currentStep += 1
@@ -611,6 +612,7 @@ model.print_grid()
 for agent in model.agents:
     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+    
 
 
 # ------------- PRUEBA A* PARA 1 AGENTE ----------------------

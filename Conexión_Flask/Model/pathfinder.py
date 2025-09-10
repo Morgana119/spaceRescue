@@ -1,5 +1,4 @@
 from heapq import heappush, heappop
-
 class Pathfinder:
     def __init__(self, agent):
         self.agent = agent # instancia de robot agente
@@ -97,16 +96,14 @@ class Pathfinder:
             currentNode = x, y
             # print("CURENT:NODE: ", currentNode, "------------------------------------------------", flush=True)
             # print("Closed set: ", closedSet, "---------------------------------------------------", flush=True)
-            cy, cx = currentNode
-            cell_current = self.model.grid[cy][cx]
 
             # Guardar la acción junto con la posición
-
             if currentNode == goal:
                 path = []
                 while currentNode in cameFrom:
                     parent, action = cameFrom[currentNode]
-                    path.append((currentNode, action))
+                    y, x = currentNode   # aquí lo tienes como y, x
+                    path.append(((x, y), action))  # lo guardas como x, y
                     currentNode = parent
                 path.reverse()
                 return path
@@ -224,21 +221,21 @@ class Pathfinder:
         
         min_path = None
         final_poi = None
-
-        # print(">>> Revisión de consistencia fuego:")
-        # for (fy, fx) in self.agent.model.firePositions:
-        #     print((fy, fx), "->", self.model.grid[fy][fx].fire)
+        arr_YX_Pois = []
 
         for poi in pois:
+            print("POI: ", poi)
+            y, x = poi
+            arr_YX_Pois.append((x,y))
+        print(arr_YX_Pois)
+
+        for poi in arr_YX_Pois:
             path = self.aStar((self.agent.positionY, self.agent.positionX), poi)
             if path:
                 if min_path is None or len(path) < len(min_path):
                     final_poi = poi
                     min_path = path
-        print("ROL", self.agent.rolRobot,"MIN PATH: ", min_path, "desde", self.agent.positionY, self.agent.positionX, "hasta:", final_poi, flush=True)
+        yFPOI, xFPOI = final_poi
+        print("ROL", self.agent.rolRobot,"MIN PATH: ", min_path, "desde", self.agent.positionX, self.agent.positionY, "hasta:", xFPOI, yFPOI, flush=True)
         print("Fuegos: ", self.agent.model.firePositions, flush=True)
-        # print(">>> Revisión de consistencia fuego:")
-        # for (fy, fx) in self.agent.model.firePositions:
-        #     print((fy, fx), "->", self.model.grid[fy][fx].fire)
         return min_path, final_poi
-
