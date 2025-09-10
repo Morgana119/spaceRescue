@@ -1,12 +1,16 @@
 # Changelog
 
+# [fa/saveVictim] (09/09/2025)
+
+### Added
+- Add actionLogs to saveVictim method
+
 # [Ale/AStar] (09/09/2025)
 
 ### Fixed
 - Closest POI function implemented
 - AStar for not random model status works correctly
 - Merge with Kami/JSON & develop
-
 
 # [fa/agentes] (08/09/2025)
 

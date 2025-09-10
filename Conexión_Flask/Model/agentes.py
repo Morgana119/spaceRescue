@@ -35,7 +35,7 @@ import time
 import datetime
 import random
 
-from .agentClass import RobotAgent
+from agentClass import RobotAgent
 from collections import deque
 
 class Cell:
