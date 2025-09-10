@@ -35,7 +35,7 @@ import time
 import datetime
 import random
 
-from agentClass import RobotAgent
+from .agentClass import RobotAgent
 from collections import deque
 
 class Cell:
@@ -149,11 +149,6 @@ class ExplorerModel(Model):
             print("Not random----------------------------------------------------")
             self.assignPairs()
 
-        if self.randomStatus: 
-            self.placeRandomAgents()
-        else:
-            self.assignPairs()
-        # Colocar agentes en solucion random
     def placeRandomAgents(self):
         for agent in self.agentList:
             while True:
@@ -383,6 +378,7 @@ class ExplorerModel(Model):
 
 
     def damageWall(self, y, x, direction, wall_status):
+        print("ENTRO A DAMAGEWALL")
         if wall_status == 1:  # pared intacta → dañada
             self.updateNeighbors(x, y, direction, 2)
             self.grid[y][x].walls[direction] = 2
@@ -396,6 +392,7 @@ class ExplorerModel(Model):
             print(f"[FIRE|EXPLODE] Pared dañada colapsa (2→0) en {(x, y)} dir {direction}")
 
         elif wall_status == 3:  # puerta cerrada → abierta
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ABRIO LA PUERTA !!!!!!!!!!!!!!!!!!!")
             self.updateNeighbors(x, y, direction, 0)
             self.grid[y][x].walls[direction] = 0
             self.actionsLog.append(('model', 'openDoor', y, x, direction))
@@ -446,9 +443,7 @@ class ExplorerModel(Model):
         cell = self.grid[y][x]
         cell.hasToken = True
         cell.poiHidden = card
-
-        if (x, y) not in self.poiPositions:
-            self.poiPositions.append((x, y))
+        self.poiPositions.append((x, y))  
 
         self.actionsLog.append(('model', 'poiPlaced', x, y))
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
@@ -481,6 +476,7 @@ class ExplorerModel(Model):
 
         if kind == 'V':
             agent.carriesPOI = True
+            self.posPOI = (y, x)
             agent.rolRobot = 1
             agent.saveVictim()
             print(f"[POI|REVEAL] VÍCTIMA en {(x, y)} → {agent.idRobot} ahora la transporta")
@@ -592,25 +588,25 @@ def gridArray(model):
     return arr
 
 
-agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
-model = ExplorerModel(agent_names, True)
-allGrids = []
-num_steps = 40  # cuántos pasos quieres simular desde el estado actual
-model.print_grid()
-print("----------------------")
-while model.checkGameOver():
-    model.step()
-    allGrids.append(gridArray(model))
-    model.currentStep += 1
-model.print_grid()
+# agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+# model = ExplorerModel(agent_names, True)
+# allGrids = []
+# num_steps = 40  # cuántos pasos quieres simular desde el estado actual
+# model.print_grid()
+# print("----------------------")
+# while model.checkGameOver():
+#     model.step()
+#     allGrids.append(gridArray(model))
+#     model.currentStep += 1
+# model.print_grid()
 
 # print("Estado inicial del tablero:")
 # model.print_grid()
 # print("----------------------")
 
-for agent in model.agents:
-    print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
-          f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+# for agent in model.agents:
+#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
 
 
 # ------------- PRUEBA A* PARA 1 AGENTE ----------------------

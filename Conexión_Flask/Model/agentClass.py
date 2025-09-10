@@ -35,7 +35,7 @@ import time
 import datetime
 import random
 
-from pathfinder import Pathfinder
+from .pathfinder import Pathfinder
 
 class RobotAgent(Agent):
     def __init__(self,name, model):
@@ -287,16 +287,16 @@ class RobotAgent(Agent):
                     moved = self.move(d)
                     print("Move: ", moved)
                     if self.positionY == exit[0] and self.positionX == exit[1]:
-                        self.carriesPOI = False
-                        self.savedVictims += 1
-                        y, x = self.posPOI
-                        self.model.poisOnBoard.remove((y, x))
-                        self.model.ensure3POI()
-                        print("LENGHT:", len(self.model.poisOnBoard))
-                        print("LENGHT:", len(self.model.poisOnBoard))
-                        print("POI", self.model.poisOnBoard)
-                        print("Carries POI to false") 
-
+                        if self.posPOI is not None: 
+                            self.carriesPOI = False
+                            self.savedVictims += 1
+                            y, x = self.posPOI
+                            self.model.poiPositions.remove((y, x))
+                            self.model.ensure3POI()
+                            print("LENGHT:", len(self.model.poiPositions))
+                            print("POI", self.model.poiPositions)
+                            print("Carries POI to false") 
+                        self.posPOI = None
                     break
             if not moved:
                 print("No se pudo mover a", (next_y, next_x))

@@ -12,6 +12,7 @@ public class ActionPayload
     public int y;
     public string agent;   
     public string kind; 
+    public int direction;
 }
 
 [System.Serializable]
@@ -26,6 +27,7 @@ public class ApiHelper : MonoBehaviour
     public float updateInterval = 2f;
     public float actionDelay = 0.3f;
     public GridFireManager gridFireManager;
+    public DoorsManager doorsManager;
     public AgentManager agentManager; // Asume que tienes un nuevo manager para los agentes.
 
     public FullStatePayload lastFullState;
@@ -94,6 +96,8 @@ public class ApiHelper : MonoBehaviour
             gridFireManager.ApplyChange("smoke", act.x, act.y);
         else if (act.action == "stopSmoke")
             gridFireManager.ApplyChange("stopSmoke", act.x, act.y);
+        else if (act.action == "weakenWall")
+            Debug.Log($"Direccion: {act.direction}");
     }
 
     void ApplyModelAction(ActionPayload act)
@@ -108,6 +112,12 @@ public class ApiHelper : MonoBehaviour
             gridFireManager.ApplyChange("stopSmoke", act.x, act.y);
         else if (act.action == "extinguish")
             gridFireManager.ApplyChange("extinguish", act.x, act.y);
+        else if (act.action == "openDoor" ) {
+            Debug.Log(($"Direccion: {act.direction}"));
+            doorsManager.OpenDoor(act.x, act.y, act.direction);
+        } else if (act.action == "weakenWall")
+            Debug.Log($"Direccion: {act.direction}");
+            
     }
 
 }
