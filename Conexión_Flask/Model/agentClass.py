@@ -81,11 +81,13 @@ class RobotAgent(Agent):
             return False
         dest = self.model.grid[ny][nx]
         if dest.fire and self.carriesPOI:
+            print("Destino con FUEGO MOVE Y LLEVA POI", dest.fire,self.carriesPOI)
             return False
 
         # costo: 2 si es fuego, 2 si lleva POI, sino 1
         cost = 2 if dest.fire or self.carriesPOI else 1
         if self.actionPoints < cost: 
+            print("MOVE AP NOT ENOUGH", self.actionPoints)
             return False
 
         self.model.agentsGrid.move_agent(self, (nx, ny))
@@ -143,6 +145,8 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = True
             self.actionPoints -= 1
+            print("Fire POSITIONS: ", self.model.firePositions, nx, ny)
+            self.model.firePositions.remove((nx, ny))
             self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
             self.model.actionsLog.append(('agent', self.idRobot, 'smoke', ny, nx))
             
@@ -161,9 +165,13 @@ class RobotAgent(Agent):
                 return False
             if self.actionPoints < 2: 
                 return False
+            
             cell.fire = False
             cell.smoke = False
             self.actionPoints -= 2
+            
+            print("Fire POSITIONS: ", self.model.firePositions, self.positionX, self.positionY)
+            self.model.firePositions.remove((self.positionX, self.positionY))
             self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', self.positionY, self.positionX))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en propia {(self.positionX, self.positionY)}, AP={self.actionPoints}")
             return True
@@ -179,6 +187,8 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = False
             self.actionPoints -= 2
+            print("Fire POSITIONS: ", self.model.firePositions, nx, ny)
+            self.model.firePositions.remove((nx, ny))
             self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en {(nx, ny)}, AP={self.actionPoints}")
             return True
@@ -260,6 +270,8 @@ class RobotAgent(Agent):
     
     def saveVictim(self):
         print(self.idRobot, " ENTRO AL SAVE VICTIM--------------------------------------------------------------------------------")
+        self.model.actionsLog.append(('agent', self.idRobot, 'saveVictim:start', self.positionX, self.positionY))
+        
         if not self.carriesPOI:
             print(f"[Agente {self.idRobot}] No lleva víctima, no va a la salida")
             return
@@ -281,31 +293,36 @@ class RobotAgent(Agent):
             # solo moverse si es vecino
             moved = False
             for d, (dy, dx) in enumerate(dirs):
-                # print("MOVE: ", d, dy, dx)
+                print("MOVE: ", d, dx, dy)
                 # PARA PROBAR EL SAVE VICTIMS SE RESTABLECE SUS AP A 4 
                 # if self.actionPoints <= 0: self.actionPoints = 4
                 
                 if self.positionY + dy == next_y and self.positionX + dx == next_x:
+                    print(f"SV IF BEFORE MOVE", d, dy, dx)
                     moved = self.move(d)
-                    print("Move: ", moved)
-                    if self.positionY == exit[1] and self.positionX == exit[0]:
-                        if self.rolRobot == 1:
-                            self.rolRobot == 0
-                        self.carriesPOI = False
-                        self.savedVictims += 1
-                        self.model.savedVictims += 1
-                        y, x = self.posPOI
-                        self.model.poiPositions.remove((y, x))
-                        self.model.ensure3POI()
-                        print("LENGHT:", len(self.model.poiPositions))
-                        print("POI", self.model.poiPositions)
-                        print("Carries POI to false") 
-                        return
-            if not moved:
-                print("No se pudo mover a", (next_x, next_y))
-                break
+                    # print("Move: ", moved)
+                    self.model.actionsLog.append(('agent', self.idRobot, 'move', next_x, next_y))
 
-    # def damaged(self):}
+                    if self.positionY == exit[0] and self.positionX == exit[1]:
+                        if self.rolRobot == 1 and self.model.randomStatus == False:
+                            self.rolRobot == 0
+                        if self.posPOI is not None: 
+                            self.carriesPOI = False
+                            self.model.savedVictims += 1
+                            self.savedVictims += 1
+                            self.model.actionsLog.append(('agent', self.idRobot, 'victimSaved', next_x, next_y, self.model.savedVictims))
+                            y, x = self.posPOI
+                            self.model.poiPositions.remove((y, x))
+                            self.model.ensure3POI()
+                            print("LENGHT:", len(self.model.poiPositions))
+                            print("POI", self.model.poiPositions)
+                            print("Carries POI to false") 
+                        self.posPOI = None
+                    break
+
+            if not moved:
+                print("No se pudo mover a", (next_x, next_y), " AP: ", self.actionPoints)
+                break
 
     def estrategyActions(self):
         if self.carriesPOI != True:
@@ -374,3 +391,5 @@ class RobotAgent(Agent):
         else:
             print("Not RANDOM: ", self.model.randomStatus)
             self.estrategyActions()
+
+        

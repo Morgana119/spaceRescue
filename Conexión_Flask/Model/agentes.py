@@ -36,6 +36,7 @@ import datetime
 import random
 
 from agentClass import RobotAgent
+from pathfinder import Pathfinder
 from collections import deque
 
 class Cell:
@@ -150,11 +151,6 @@ class ExplorerModel(Model):
             print("Not random----------------------------------------------------")
             self.assignPairs()
 
-        if self.randomStatus: 
-            self.placeRandomAgents()
-        else:
-            self.assignPairs()
-        # Colocar agentes en solucion random
     def placeRandomAgents(self):
         for agent in self.agentList:
             while True:
@@ -277,19 +273,51 @@ class ExplorerModel(Model):
         y = random.randint(1, self.height - 2) 
         return x, y
     
-    def updateSmoke(self) : 
+    def updateSmoke(self):
         initial_ignition_points = set()
+        moves = {0: (-1, 0), 1: (0, 1), 2: (1, 0), 3: (0, -1)}
+
         for y in range(self.height):
             for x in range(self.width):
-                if self.grid[y][x].smoke == True:
-                    for dy, dx in [(-1,0),(1,0),(0,-1),(0,1)]:
+                if self.grid[y][x].smoke:
+                    for direction, (dy, dx) in moves.items():
                         ny, nx = y + dy, x + dx
                         if 0 <= ny < self.height and 0 <= nx < self.width:
                             neighbor = self.grid[ny][nx]
-                            if self.grid[ny][nx].fire == True: 
+
+                            wall_status = self.grid[y][x].walls[direction]
+                            if wall_status in (1, 2, 3): 
+                                continue
+                            if neighbor.fire:
                                 initial_ignition_points.add((y, x))
+
         for y, x in initial_ignition_points:
-            self.propagateFire(y, x)    
+            self.propagateFire(y, x)
+  
+
+    # def propagateFire(self, y_start, x_start):
+    #     queue = deque()
+    #     processed_cells = set()
+
+    #     queue.append((y_start, x_start))
+    #     processed_cells.add((y_start, x_start))
+
+    #     while queue:
+    #         y, x = queue.popleft()
+            
+    #         self.grid[y][x].fire = True
+    #         self.grid[y][x].smoke = False
+    #         self.actionsLog.append(('model', 'stopSmoke', y, x))
+    #         self.actionsLog.append(('model', 'ignite', y, x))
+
+    #         for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+    #             ny, nx = y + dy, x + dx
+
+    #             if 0 <= ny < self.height and 0 <= nx < self.width and (ny, nx) not in processed_cells:
+    #                 neighbor = self.grid[ny][nx]
+    #                 if neighbor.smoke:
+    #                     queue.append((ny, nx))
+    #                     processed_cells.add((ny, nx))
 
     def propagateFire(self, y_start, x_start):
         queue = deque()
@@ -298,22 +326,36 @@ class ExplorerModel(Model):
         queue.append((y_start, x_start))
         processed_cells.add((y_start, x_start))
 
+        moves = {0: (-1, 0), 1: (0, 1), 2: (1, 0), 3: (0, -1)}
+
         while queue:
             y, x = queue.popleft()
-            
+
             self.grid[y][x].fire = True
             self.grid[y][x].smoke = False
+            self.firePositions.append((x, y))
             self.actionsLog.append(('model', 'stopSmoke', y, x))
             self.actionsLog.append(('model', 'ignite', y, x))
 
-            for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            for direction, (dy, dx) in moves.items():
                 ny, nx = y + dy, x + dx
 
                 if 0 <= ny < self.height and 0 <= nx < self.width and (ny, nx) not in processed_cells:
+                    wall_status = self.grid[y][x].walls[direction]
+
+                    if wall_status == 1:
+                        continue
+                    if wall_status == 2: 
+                        continue
+                    if wall_status == 3:  
+                        continue
+
                     neighbor = self.grid[ny][nx]
+
                     if neighbor.smoke:
                         queue.append((ny, nx))
                         processed_cells.add((ny, nx))
+
 
     def updateNeighbors(self, x, y, coordinate, newStatus):
         update = (coordinate + 2) % 4
@@ -343,6 +385,7 @@ class ExplorerModel(Model):
             cell.smoke = False
             cell.fire = True
             self.newlyIgnited.add((x, y))
+            self.firePositions.append((x, y))
             self.actionsLog.append(('model', 'stopSmoke', y, x))
             self.actionsLog.append(('model', 'ignite', y, x))
         
@@ -375,6 +418,7 @@ class ExplorerModel(Model):
                 neighbor.smoke = False
                 print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dir {direction} desde {(x, y)}")
                 self.newlyIgnited.add((ny, nx))
+                self.firePositions.append((nx, ny))
                 self.actionsLog.append(('model', 'ignite', ny, nx))
                 break
 
@@ -383,6 +427,7 @@ class ExplorerModel(Model):
 
 
     def damageWall(self, y, x, direction, wall_status):
+        print("ENTRO A DAMAGEWALL")
         if wall_status == 1:  # pared intacta → dañada
             self.updateNeighbors(x, y, direction, 2)
             self.grid[y][x].walls[direction] = 2
@@ -396,6 +441,7 @@ class ExplorerModel(Model):
             print(f"[FIRE|EXPLODE] Pared dañada colapsa (2→0) en {(x, y)} dir {direction}")
 
         elif wall_status == 3:  # puerta cerrada → abierta
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ABRIO LA PUERTA !!!!!!!!!!!!!!!!!!!")
             self.updateNeighbors(x, y, direction, 0)
             self.grid[y][x].walls[direction] = 0
             self.actionsLog.append(('model', 'openDoor', y, x, direction))
@@ -446,9 +492,7 @@ class ExplorerModel(Model):
         cell = self.grid[y][x]
         cell.hasToken = True
         cell.poiHidden = card
-
-        if (x, y) not in self.poiPositions:
-            self.poiPositions.append((x, y))
+        self.poiPositions.append((x, y))  
 
         self.actionsLog.append(('model', 'poiPlaced', x, y))
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
@@ -481,6 +525,7 @@ class ExplorerModel(Model):
 
         if kind == 'V':
             agent.carriesPOI = True
+            self.posPOI = (y, x)
             agent.rolRobot = 1
             agent.saveVictim()
             print(f"[POI|REVEAL] VÍCTIMA en {(x, y)} → {agent.idRobot} ahora la transporta")
@@ -554,10 +599,10 @@ class ExplorerModel(Model):
         # dinámica de fuego
         x, y = self.RollDice()
         self.actionsLog.append(('model', 'dice', y, x))
-        print(f"[FIRE] Tirada de fuego desde {(x, y)}")
-        self.spreadFire(x, y)
-        self.updateSmoke()
-        print("YA TERMINO DE EXPANDIR EL FUEGO")
+        # print(f"[FIRE] Tirada de fuego desde {(x, y)}")
+        # self.spreadFire(x, y)
+        # self.updateSmoke()
+        # print("YA TERMINO DE EXPANDIR EL FUEGO")
 
         # Si alguien está en una casilla recién encendida, knockdown
         for a in self.agentList:
@@ -593,26 +638,65 @@ def gridArray(model):
 
 
 agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
-model = ExplorerModel(agent_names, True)
-allGrids = []
 num_steps = 50 # cuántos pasos quieres simular desde el estado actual
-model.print_grid()
-print("----------------------")
-# while model.checkGameOver():
-while model.currentStep < num_steps:
-    model.step()
-    allGrids.append(gridArray(model))
-    model.currentStep += 1
-model.print_grid()
+ITERATIONS = 1
+results = []  # víctimas salvadas en cada simulación
+
+for i in range(ITERATIONS):
+    print("ITERATION: ", i)
+    model = ExplorerModel(agent_names, True)
+    allGrids = []
+    model.print_grid()
+    print("----------------------")
+
+    agent = model.agents[0]
+
+    print(f"\n[Simulación {i+1}]")
+    print(f"Agente {agent.idRobot} empieza en {agent.positionX, agent.positionY}")
+    agent.carriesPOI = True
+    agent.posPOI = (5,1)
+
+    # if path:
+    #     print("Camino encontrado:", path)
+    # else:
+    #     print("No hay camino disponible.")
+    
+
+    while model.checkGameOver():
+    # while model.currentStep < num_steps:
+        model.step()
+        allGrids.append(gridArray(model))
+        model.currentStep += 1
+    model.print_grid()
+
+    # guardar resultado de víctimas salvadas
+    results.append(model.savedVictims)
+
+# ---- RESUMEN ----
+total_saved = sum(results)
+average_saved = total_saved / ITERATIONS
+
+print(f"Simulaciones: {ITERATIONS}")
+print(f"Total de víctimas salvadas: {total_saved}")
+print(f"Promedio de víctimas salvadas por simulación: {average_saved:.2f}")
+
+# distribución: cuántas simulaciones lograron X víctimas
+from collections import Counter
+distribution = Counter(results)
+print("\nDistribución de víctimas salvadas por simulación:")
+for saved, count in sorted(distribution.items()):
+    print(f"{saved} víctimas: {count} simulaciones")
+
 
 # print("Estado inicial del tablero:")
 # model.print_grid()
 # print("----------------------")
 
-for agent in model.agents:
-    print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
-          f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+# for agent in model.agents:
+#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
+#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
     
+# print(f"TOTAL VICTIMS SAVED {model.savedVictims}")   
 
 
 # ------------- PRUEBA A* PARA 1 AGENTE ----------------------

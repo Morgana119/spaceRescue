@@ -61,7 +61,7 @@ agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 #     model.step()
 #     # Devuelve en formato JSON las posiciones actualizadas de todos los agentes
 #     return jsonify(model.get_payload())
-explorer_model = ExplorerModel(agent_names)
+explorer_model = ExplorerModel(agent_names, True)
 
 @agent_bp.route("/state", methods=["GET"])
 def get_state():

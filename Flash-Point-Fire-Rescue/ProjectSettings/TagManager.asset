@@ -6,6 +6,8 @@ TagManager:
   tags:
   - Fire
   - Smoke
+  - openDoor
+  - closeDoor
   layers:
   - Default
   - TransparentFX

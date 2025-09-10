@@ -69,22 +69,32 @@ class Pathfinder:
 
        
     def aStar(self, start, goal):
+        # convertir start y goal a (y, x) si vienen como (x, y)
+        # heurística rápida: si el primero < altura -> es Y
+        y_Start, x_Start = start
+        y_goal, x_goal = goal
+        
         # print(self.agent.idRobot, "ENTRO AL A*")
         openSet = []
-        closedSet = set()           
-        heappush(openSet, (0, start))
+        # closedSet = set()          
+        heappush(openSet, (0, (y_Start, x_Start)))
         cameFrom = {}  # ahora guarda: { nodo: (padre, acción) }
-        gScore = {start : 0}
+        gScore = {(y_Start, x_Start ) : 0}
 
         while openSet:
-            _, (x,y)= heappop(openSet)
-            currentNode = x, y
-            if currentNode == goal:
+            _, (y, x)= heappop(openSet)
+            currentNode = y, x
+            # if currentNode in closedSet:
+            #     print("ALready in clolsed set")
+            #     continue
+            # closedSet.add(currentNode)
+
+            if currentNode == (y_goal, x_goal):
                 path = []
                 while currentNode in cameFrom:
                     parent, action = cameFrom[currentNode]
                     y, x = currentNode   # aquí lo tienes como y, x
-                    path.append(((x, y), action))  # lo guardas como x, y
+                    path.append(((x,y), action))  # lo guardas como x, y
                     currentNode = parent
                 path.reverse()
                 return path
@@ -96,8 +106,8 @@ class Pathfinder:
                 # for (pos, act) in closedSet:
                 #     if pos == (ny, nx):
                 #         continue
-                if neighbor in closedSet:
-                    continue
+                # if neighbor in closedSet:
+                #     continue
                 
                 cell = self.model.grid[ny][nx]                
 
@@ -130,37 +140,38 @@ class Pathfinder:
                 tentativeG = gScore[currentNode] + action_cost
 
                 if neighbor not in gScore or tentativeG < gScore[neighbor]:
-                    if neighbor in closedSet: 
-                        continue
+                    # if neighbor in closedSet: 
+                    #     continue
                     gScore[neighbor] = tentativeG
                     fScore = tentativeG + self.heuristic(neighbor, goal)
                     heappush(openSet, (fScore, neighbor))
                     cameFrom[neighbor] = (currentNode, best_action) 
                     # closedSet.add((currentNode, best_action))
-                    closedSet.add(currentNode)
         return None       
     
     def closestExit(self):
-        print(self.agent.idRobot,"Entro al closes Exit", flush=True)
-        print("PUNTOS DE ACCION ",self.agent.actionPoints)
+        # print(self.agent.idRobot,"Entro al closes Exit", flush=True)
+        # print("PUNTOS DE ACCION ",self.agent.actionPoints)
         exits = self.agent.model.exitPositions
         print("CLOSETS EXITS: ", exits, "--------------------------------", flush=True)
 
         if (self.agent.positionX, self.agent.positionY) in exits:
-            print(f"Agente {self.agent.idRobot} YA ESTÁ en una salida -> no busca más")
+            # print(f"Agente {self.agent.idRobot} YA ESTÁ en una salida -> no busca más")
             return None, (self.agent.positionX, self.agent.positionY)
         
         arr_YX_Pois = []
         for exit in exits:
-            y, x = exit
+            x, y = exit
             arr_YX_Pois.append((y,x))
         print(arr_YX_Pois)
         
         min_path = None
         exit_final = None
 
+        print("Agente POS: ", self.agent.positionY, self.agent.positionX)
+
         for exitPos in arr_YX_Pois:
-            print("EXITPOS: ", exitPos)
+            # print("EXITPOS: ", exitPos)
             path = self.aStar((self.agent.positionY, self.agent.positionX), exitPos)
             if path:
                 if min_path is None or len(path) < len(min_path):
@@ -168,23 +179,22 @@ class Pathfinder:
                     min_path = path
 
         if exit_final is None:
-            print(f"[WARN] Agente {self.agent.idRobot}: no hay camino a ninguna salida desde "
-                f"({self.agent.positionX}, {self.agent.positionY})")
+            print(f"[WARN] Agente {self.agent.idRobot}: no hay camino a ninguna salida desde {self.agent.positionX}, {self.agent.positionY}")
             return None, None   
         
         yFPOI, xFPOI = exit_final
         exit = xFPOI, yFPOI
-        print("ROL", self.agent.idRobot, "MIN PATH: ", min_path, "desde", self.agent.positionX, self.agent.positionY, "hasta:",  xFPOI, yFPOI, flush=True)
+        print("ROL", self.agent.idRobot, "MIN PATH: ", min_path, "desde", self.agent.positionY, self.agent.positionX, "hasta:",  yFPOI, xFPOI, flush=True)
         print("Fuegos: ", self.agent.model.firePositions)
         return min_path, exit
 
     ## Encontrar un POI
     def closestPOI(self):
-        print("Entro al closest POI")
+        # print("Entro al closest POI")
         pois = self.agent.model.poiPositions
 
         if (self.agent.positionY, self.agent.positionX) in pois:
-            print(f"POI {self.agent.idRobot} YA ESTÁ en un poi -> no busca más")
+            # print(f"POI {self.agent.idRobot} YA ESTÁ en un poi -> no busca más")
             return None, (self.agent.positionX, self.agent.positionY)
         
         min_path = None
@@ -194,8 +204,8 @@ class Pathfinder:
         for poi in pois:
             # print("POI: ", poi)
             y, x = poi
-            arr_YX_Pois.append((x,y))
-        print(arr_YX_Pois)
+            arr_YX_Pois.append((y,x))
+        # print(arr_YX_Pois)
 
         for poi in arr_YX_Pois:
             path = self.aStar((self.agent.positionY, self.agent.positionX), poi)
@@ -205,8 +215,7 @@ class Pathfinder:
                     min_path = path
 
         if final_poi is None:
-            print(f"[WARN] Agente {self.agent.idRobot}: no encontro ningún POI desde "
-                f"({self.agent.positionX}, {self.agent.positionY})")
+            # print(f"[WARN] Agente {self.agent.idRobot}: no encontro ningún POI desde {self.agent.positionX}, {self.agent.positionY}")
             return None, None  
         
         yFPOI, xFPOI = final_poi
