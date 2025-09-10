@@ -35,7 +35,7 @@ import time
 import datetime
 import random
 
-from .pathfinder import Pathfinder
+from pathfinder import Pathfinder
 
 class RobotAgent(Agent):
     def __init__(self,name, model):
@@ -256,7 +256,8 @@ class RobotAgent(Agent):
     # def meetPartner(self):
     
     def saveVictim(self):
-        # print(self.idRobot, " ENTRO AL SAVE VICTIM")
+        self.model.actionsLog.append(('agent', self.idRobot, 'saveVictim:start', self.positionX, self.positionY))
+        
         if not self.carriesPOI:
             print(f"[Agente {self.idRobot}] No lleva víctima, no va a la salida")
             return
@@ -270,14 +271,12 @@ class RobotAgent(Agent):
             return
         
         path = [pos for pos, _ in path]
-
         
         dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
         
         for i in range(len(path)):
             next_y, next_x = path[i]
-            # solo moverse si es vecino
-            moved = False
+
             for d, (dy, dx) in enumerate(dirs):
                 # print("MOVE: ", d, dy, dx)
                 # PARA PROBAR EL SAVE VICTIMS SE RESTABLECE SUS AP A 4 
@@ -286,10 +285,13 @@ class RobotAgent(Agent):
                 if self.positionY + dy == next_y and self.positionX + dx == next_x:
                     moved = self.move(d)
                     print("Move: ", moved)
+                    self.model.actionsLog.append(('agent', self.idRobot, 'move', next_x, next_y))
+
                     if self.positionY == exit[0] and self.positionX == exit[1]:
                         if self.posPOI is not None: 
                             self.carriesPOI = False
-                            self.savedVictims += 1
+                            self.model.savedVictims += 1
+                            self.model.actionsLog.append(('agent', self.idRobot, 'victimSaved', next_x, next_y, self.model.savedVictims))
                             y, x = self.posPOI
                             self.model.poiPositions.remove((y, x))
                             self.model.ensure3POI()
@@ -298,11 +300,10 @@ class RobotAgent(Agent):
                             print("Carries POI to false") 
                         self.posPOI = None
                     break
+
             if not moved:
                 print("No se pudo mover a", (next_y, next_x))
                 break
-
-    # def damaged(self):}
 
     def estrategyActions(self):
         self.pathfinder.closestPOI()
