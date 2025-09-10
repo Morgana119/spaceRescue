@@ -544,7 +544,7 @@ class ExplorerModel(Model):
 
         # agente del turno actual
         agent = self.agentList[self.current_turn]
-        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionY, agent.positionX)}")
+        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
 
         agent.step()  # este agente gasta hasta 4 PA en su propio step()
 
@@ -593,7 +593,7 @@ def gridArray(model):
 
 
 agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
-model = ExplorerModel(agent_names, True)
+model = ExplorerModel(agent_names, False)
 allGrids = []
 num_steps = 6 # cuántos pasos quieres simular desde el estado actual
 model.print_grid()
