@@ -271,19 +271,51 @@ class ExplorerModel(Model):
         y = random.randint(1, self.height - 2) 
         return x, y
     
-    def updateSmoke(self) : 
+    def updateSmoke(self):
         initial_ignition_points = set()
+        moves = {0: (-1, 0), 1: (0, 1), 2: (1, 0), 3: (0, -1)}
+
         for y in range(self.height):
             for x in range(self.width):
-                if self.grid[y][x].smoke == True:
-                    for dy, dx in [(-1,0),(1,0),(0,-1),(0,1)]:
+                if self.grid[y][x].smoke:
+                    for direction, (dy, dx) in moves.items():
                         ny, nx = y + dy, x + dx
                         if 0 <= ny < self.height and 0 <= nx < self.width:
                             neighbor = self.grid[ny][nx]
-                            if self.grid[ny][nx].fire == True: 
+
+                            wall_status = self.grid[y][x].walls[direction]
+                            if wall_status in (1, 2, 3): 
+                                continue
+                            if neighbor.fire:
                                 initial_ignition_points.add((y, x))
+
         for y, x in initial_ignition_points:
-            self.propagateFire(y, x)    
+            self.propagateFire(y, x)
+  
+
+    # def propagateFire(self, y_start, x_start):
+    #     queue = deque()
+    #     processed_cells = set()
+
+    #     queue.append((y_start, x_start))
+    #     processed_cells.add((y_start, x_start))
+
+    #     while queue:
+    #         y, x = queue.popleft()
+            
+    #         self.grid[y][x].fire = True
+    #         self.grid[y][x].smoke = False
+    #         self.actionsLog.append(('model', 'stopSmoke', y, x))
+    #         self.actionsLog.append(('model', 'ignite', y, x))
+
+    #         for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+    #             ny, nx = y + dy, x + dx
+
+    #             if 0 <= ny < self.height and 0 <= nx < self.width and (ny, nx) not in processed_cells:
+    #                 neighbor = self.grid[ny][nx]
+    #                 if neighbor.smoke:
+    #                     queue.append((ny, nx))
+    #                     processed_cells.add((ny, nx))
 
     def propagateFire(self, y_start, x_start):
         queue = deque()
@@ -292,22 +324,35 @@ class ExplorerModel(Model):
         queue.append((y_start, x_start))
         processed_cells.add((y_start, x_start))
 
+        moves = {0: (-1, 0), 1: (0, 1), 2: (1, 0), 3: (0, -1)}
+
         while queue:
             y, x = queue.popleft()
-            
+
             self.grid[y][x].fire = True
             self.grid[y][x].smoke = False
             self.actionsLog.append(('model', 'stopSmoke', y, x))
             self.actionsLog.append(('model', 'ignite', y, x))
 
-            for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            for direction, (dy, dx) in moves.items():
                 ny, nx = y + dy, x + dx
 
                 if 0 <= ny < self.height and 0 <= nx < self.width and (ny, nx) not in processed_cells:
+                    wall_status = self.grid[y][x].walls[direction]
+
+                    if wall_status == 1:
+                        continue
+                    if wall_status == 2: 
+                        continue
+                    if wall_status == 3:  
+                        continue
+
                     neighbor = self.grid[ny][nx]
+
                     if neighbor.smoke:
                         queue.append((ny, nx))
                         processed_cells.add((ny, nx))
+
 
     def updateNeighbors(self, x, y, coordinate, newStatus):
         update = (coordinate + 2) % 4
