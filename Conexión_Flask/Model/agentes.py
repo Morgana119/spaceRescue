@@ -242,8 +242,8 @@ class ExplorerModel(Model):
                     entry.update({"action": "poiReveal", "x": act[2], "y": act[3], "kind": act[4]})
                 elif act[1] == "knockdown":
                     entry.update({"action": "knockdown", "agent": act[2], "x": act[3], "y": act[4]})
-                elif act[1] == "openDoor":
-                    entry.update({"action": "openDoor", "x": act[2], "y": act[3], "direction": act[4]})
+                elif act[1] == "breakWall" or act[1] == "weakenWall" or act[1] == "openDoor":
+                    entry.update({"action": act[1], "x": act[2], "y": act[3], "direction": act[4]})
                 else:
                     entry.update({"action": act[1], "data": act[2:]})
 
@@ -428,7 +428,8 @@ class ExplorerModel(Model):
                 self.firePositions.append((nx, ny))
                 self.actionsLog.append(('model', 'ignite', ny, nx))
                 break
-
+            
+            y, x = ny, nx
             ny += dy
             nx += dx
 
@@ -439,12 +440,14 @@ class ExplorerModel(Model):
             self.updateNeighbors(x, y, direction, 2)
             self.grid[y][x].walls[direction] = 2
             self.damagedWalls += 1
+            self.actionsLog.append(('model', 'weakenWall', y, x, direction))
             print(f"[FIRE|EXPLODE] Pared completa dañada (1→2) en {(x, y)} dir {direction}")
 
         elif wall_status == 2:  # pared dañada → colapsa
             self.updateNeighbors(x, y, direction, 0)
             self.grid[y][x].walls[direction] = 0
             self.damagedWalls += 1
+            self.actionsLog.append(('model', 'breakWall', y, x, direction))
             print(f"[FIRE|EXPLODE] Pared dañada colapsa (2→0) en {(x, y)} dir {direction}")
 
         elif wall_status == 3:  # puerta cerrada → abierta

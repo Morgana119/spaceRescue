@@ -110,7 +110,7 @@ class RobotAgent(Agent):
         self.model.updateNeighbors(x, y, d, 0)
         self.model.grid[y][x].walls[d] = 0
         self.actionPoints -= 1
-        self.model.actionsLog.append(('agent', self.idRobot, 'openDoor', x, y, d))
+        self.model.actionsLog.append(('agent', self.idRobot, 'openDoor', y, x, d))
         print(f"[Agente {self.idRobot}] OPEN_DOOR dir={d}, AP={self.actionPoints}")
         return True  
     
@@ -206,7 +206,7 @@ class RobotAgent(Agent):
             self.model.damagedWalls += 1
             self.actionPoints -= 2
             print("%%%%%%%%%% DIRECTION %%%%%%%%%%%%", d)
-            self.model.actionsLog.append(('agent', self.idRobot, 'weakenWall', x, y, d))
+            self.model.actionsLog.append(('agent', self.idRobot, 'weakenWall', y, x, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (debilitar 1→2) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
 
@@ -217,7 +217,7 @@ class RobotAgent(Agent):
             self.model.grid[y][x].walls[d] = 0
             self.model.damagedWalls += 1
             self.actionPoints -= 2
-            self.model.actionsLog.append(('agent', self.idRobot, 'breakWall', x, y, d))
+            self.model.actionsLog.append(('agent', self.idRobot, 'breakWall', y, x, d))
             print(f"[Agente {self.idRobot}] BREAK_WALL (romper 2→0) en {(x, y)} lado {DIR_NAMES[d]} | AP={self.actionPoints}")
             return True
             

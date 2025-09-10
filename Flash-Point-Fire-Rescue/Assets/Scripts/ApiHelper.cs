@@ -29,6 +29,7 @@ public class ApiHelper : MonoBehaviour
     public GridFireManager gridFireManager;
     public DoorsManager doorsManager;
     public AgentManager agentManager; 
+    public WallsManager wallsManager;
 
     public FullStatePayload lastFullState;
 
@@ -97,7 +98,9 @@ public class ApiHelper : MonoBehaviour
         else if (act.action == "stopSmoke")
             gridFireManager.ApplyChange("stopSmoke", act.x, act.y);
         else if (act.action == "weakenWall")
-            Debug.Log($"Direccion: {act.direction}");
+            wallsManager.DamageWall(act.x, act.y, act.direction);
+        else if (act.action == "breakWall")
+            wallsManager.BreakWall(act.x, act.y, act.direction);
         else if (act.action == "openDoor" ) {
             Debug.Log(($"Direccion: {act.direction}"));
             doorsManager.OpenDoor(act.x, act.y, act.direction);
@@ -119,8 +122,10 @@ public class ApiHelper : MonoBehaviour
         else if (act.action == "openDoor" ) {
             Debug.Log(($"Direccion: {act.direction}"));
             doorsManager.OpenDoor(act.x, act.y, act.direction);
-        } else if (act.action == "weakenWall")
-            Debug.Log($"Direccion: {act.direction}");
+        }else if (act.action == "weakenWall")
+            wallsManager.DamageWall(act.x, act.y, act.direction);
+        else if (act.action == "breakWall")
+            wallsManager.BreakWall(act.x, act.y, act.direction);
             
     }
 
