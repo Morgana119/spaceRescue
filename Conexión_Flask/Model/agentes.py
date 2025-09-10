@@ -331,6 +331,7 @@ class ExplorerModel(Model):
 
             self.grid[y][x].fire = True
             self.grid[y][x].smoke = False
+            self.firePositions.append((x, y))
             self.actionsLog.append(('model', 'stopSmoke', y, x))
             self.actionsLog.append(('model', 'ignite', y, x))
 
@@ -383,6 +384,7 @@ class ExplorerModel(Model):
             cell.smoke = False
             cell.fire = True
             self.newlyIgnited.add((x, y))
+            self.firePositions.append((x, y))
             self.actionsLog.append(('model', 'stopSmoke', y, x))
             self.actionsLog.append(('model', 'ignite', y, x))
         
@@ -415,6 +417,7 @@ class ExplorerModel(Model):
                 neighbor.smoke = False
                 print(f"[FIRE→SPREAD] Se encendió fuego en {(nx, ny)} por dir {direction} desde {(x, y)}")
                 self.newlyIgnited.add((ny, nx))
+                self.firePositions.append((x, y))
                 self.actionsLog.append(('model', 'ignite', ny, nx))
                 break
 

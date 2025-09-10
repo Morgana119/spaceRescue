@@ -140,6 +140,7 @@ class RobotAgent(Agent):
             dest.fire = False
             dest.smoke = True
             self.actionPoints -= 1
+            self.model.firePositions.remove((nx, ny))
             self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
             self.model.actionsLog.append(('agent', self.idRobot, 'smoke', ny, nx))
             
