@@ -93,9 +93,11 @@ class Pathfinder:
             for (neighbor, d) in self.getNeighbors(currentNode):
                 ny, nx = neighbor
 
-                for (pos, act) in closedSet:
-                    if pos == (ny, nx):
-                        continue
+                # for (pos, act) in closedSet:
+                #     if pos == (ny, nx):
+                #         continue
+                if neighbor in closedSet:
+                    continue
                 
                 cell = self.model.grid[ny][nx]                
 
@@ -134,13 +136,13 @@ class Pathfinder:
                     fScore = tentativeG + self.heuristic(neighbor, goal)
                     heappush(openSet, (fScore, neighbor))
                     cameFrom[neighbor] = (currentNode, best_action) 
-                    closedSet.add((currentNode, best_action))
+                    # closedSet.add((currentNode, best_action))
+                    closedSet.add(currentNode)
         return None       
     
     def closestExit(self):
         print(self.agent.idRobot,"Entro al closes Exit", flush=True)
         print("PUNTOS DE ACCION ",self.agent.actionPoints)
-        print("POI", self.model.poiPositions)
         exits = self.agent.model.exitPositions
         print("CLOSETS EXITS: ", exits, "--------------------------------", flush=True)
 
@@ -151,7 +153,7 @@ class Pathfinder:
         arr_YX_Pois = []
         for exit in exits:
             y, x = exit
-            arr_YX_Pois.append((x,y))
+            arr_YX_Pois.append((y,x))
         print(arr_YX_Pois)
         
         min_path = None
@@ -171,10 +173,10 @@ class Pathfinder:
             return None, None   
         
         yFPOI, xFPOI = exit_final
-
+        exit = xFPOI, yFPOI
         print("ROL", self.agent.idRobot, "MIN PATH: ", min_path, "desde", self.agent.positionX, self.agent.positionY, "hasta:",  xFPOI, yFPOI, flush=True)
         print("Fuegos: ", self.agent.model.firePositions)
-        return min_path, exit_final
+        return min_path, exit
 
     ## Encontrar un POI
     def closestPOI(self):
@@ -203,7 +205,7 @@ class Pathfinder:
                     min_path = path
 
         if final_poi is None:
-            print(f"[WARN] Agente {self.agent.idRobot}: no hay camino a ninguna salida desde "
+            print(f"[WARN] Agente {self.agent.idRobot}: no encontro ningún POI desde "
                 f"({self.agent.positionX}, {self.agent.positionY})")
             return None, None  
         

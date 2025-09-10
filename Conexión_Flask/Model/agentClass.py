@@ -289,13 +289,16 @@ class RobotAgent(Agent):
                     moved = self.move(d)
                     print("Move: ", moved)
                     if self.positionY == exit[1] and self.positionX == exit[0]:
+                        if self.rolRobot == 1:
+                            self.rolRobot == 0
                         self.carriesPOI = False
                         self.savedVictims += 1
+                        self.model.savedVictims += 1
                         y, x = self.posPOI
-                        self.model.poisOnBoard.remove((y, x))
+                        self.model.poiPositions.remove((y, x))
                         self.model.ensure3POI()
-                        print("LENGHT:", len(self.model.poisOnBoard))
-                        print("POI", self.model.poisOnBoard)
+                        print("LENGHT:", len(self.model.poiPositions))
+                        print("POI", self.model.poiPositions)
                         print("Carries POI to false") 
                         return
             if not moved:
@@ -307,7 +310,7 @@ class RobotAgent(Agent):
     def estrategyActions(self):
         if self.carriesPOI != True:
             pathPOI, goal = self.pathfinder.closestPOI()
-            print("Entro al estrategy Action: ", pathPOI)
+            print(f"Entro al estrategy Action: ", pathPOI,"hasta", goal)
 
             if not pathPOI or not goal:
                 print(f"[Agente {self.idRobot}] No hay POI accesible")

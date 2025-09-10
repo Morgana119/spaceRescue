@@ -534,8 +534,8 @@ class ExplorerModel(Model):
         return True
 
     def step(self):
-        if not self.checkGameOver():
-            return
+        # if not self.checkGameOver():
+        #     return
 
         self.actionsLog = []
         self.newlyIgnited = set()
@@ -564,9 +564,9 @@ class ExplorerModel(Model):
             if (a.positionX, a.positionY) in self.newlyIgnited:
                 self.knockdown(a)
 
-        # Checar si se acabó el juego
-        if not self.checkGameOver():
-            return
+        # # Checar si se acabó el juego
+        # if not self.checkGameOver():
+        #     return
 
     def print_grid(self):
         for y in range(self.height):
@@ -593,13 +593,13 @@ def gridArray(model):
 
 
 agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
-model = ExplorerModel(agent_names, False)
+model = ExplorerModel(agent_names, True)
 allGrids = []
-num_steps = 6 # cuántos pasos quieres simular desde el estado actual
+num_steps = 50 # cuántos pasos quieres simular desde el estado actual
 model.print_grid()
 print("----------------------")
-while model.checkGameOver():
-# while model.currentStep < num_steps:
+# while model.checkGameOver():
+while model.currentStep < num_steps:
     model.step()
     allGrids.append(gridArray(model))
     model.currentStep += 1
