@@ -203,7 +203,7 @@ class Pathfinder:
 
         for poi in pois:
             # print("POI: ", poi)
-            y, x = poi
+            x, y = poi
             arr_YX_Pois.append((y,x))
         # print(arr_YX_Pois)
 
@@ -219,6 +219,7 @@ class Pathfinder:
             return None, None  
         
         yFPOI, xFPOI = final_poi
+        final = xFPOI, yFPOI
         # print("ROL", self.agent.rolRobot,"MIN PATH: ", min_path, "desde", self.agent.positionX, self.agent.positionY, "hasta:", xFPOI, yFPOI, flush=True)
         # print("Fuegos: ", self.agent.model.firePositions, flush=True)
-        return min_path, final_poi
+        return min_path, final

@@ -520,12 +520,12 @@ class ExplorerModel(Model):
         kind = cell.poiHidden  # 'V' o 'F'
         cell.hasToken = False
         cell.poiHidden = None
-        if (x, y) in self.poiPositions:
-            self.poiPositions.remove((x, y))
+        # if (x, y) in self.poiPositions:
+        #     self.poiPositions.remove((x, y))
 
         if kind == 'V':
             agent.carriesPOI = True
-            self.posPOI = (y, x)
+            agent.posPOI = (x, y)
             agent.rolRobot = 1
             agent.saveVictim()
             print(f"[POI|REVEAL] VÍCTIMA en {(x, y)} → {agent.idRobot} ahora la transporta")
@@ -599,10 +599,10 @@ class ExplorerModel(Model):
         # dinámica de fuego
         x, y = self.RollDice()
         self.actionsLog.append(('model', 'dice', y, x))
-        # print(f"[FIRE] Tirada de fuego desde {(x, y)}")
-        # self.spreadFire(x, y)
-        # self.updateSmoke()
-        # print("YA TERMINO DE EXPANDIR EL FUEGO")
+        print(f"[FIRE] Tirada de fuego desde {(x, y)}")
+        self.spreadFire(x, y)
+        self.updateSmoke()
+        print("YA TERMINO DE EXPANDIR EL FUEGO")
 
         # Si alguien está en una casilla recién encendida, knockdown
         for a in self.agentList:
@@ -639,29 +639,28 @@ def gridArray(model):
 
 agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 num_steps = 50 # cuántos pasos quieres simular desde el estado actual
-ITERATIONS = 1
+ITERATIONS = 100
 results = []  # víctimas salvadas en cada simulación
 
 for i in range(ITERATIONS):
     print("ITERATION: ", i)
-    model = ExplorerModel(agent_names, True)
+    model = ExplorerModel(agent_names, False)
     allGrids = []
     model.print_grid()
     print("----------------------")
 
-    agent = model.agents[0]
+    # agent = model.agents[0]
 
-    print(f"\n[Simulación {i+1}]")
-    print(f"Agente {agent.idRobot} empieza en {agent.positionX, agent.positionY}")
-    agent.carriesPOI = True
-    agent.posPOI = (5,1)
+    # print(f"\n[Simulación {i+1}]")
+    # print(f"Agente {agent.idRobot} empieza en {agent.positionX, agent.positionY}")
+    # agent.carriesPOI = True
+    # agent.posPOI = (5,1)
 
     # if path:
     #     print("Camino encontrado:", path)
     # else:
     #     print("No hay camino disponible.")
     
-
     while model.checkGameOver():
     # while model.currentStep < num_steps:
         model.step()
@@ -674,18 +673,15 @@ for i in range(ITERATIONS):
 
 # ---- RESUMEN ----
 total_saved = sum(results)
-average_saved = total_saved / ITERATIONS
+total_simulations = len(results)
 
-print(f"Simulaciones: {ITERATIONS}")
-print(f"Total de víctimas salvadas: {total_saved}")
-print(f"Promedio de víctimas salvadas por simulación: {average_saved:.2f}")
+print(f"Simulaciones totales: {total_simulations}")
+print(f"Total de víctimas salvadas: {total_saved}\n")
 
-# distribución: cuántas simulaciones lograron X víctimas
-from collections import Counter
-distribution = Counter(results)
-print("\nDistribución de víctimas salvadas por simulación:")
-for saved, count in sorted(distribution.items()):
-    print(f"{saved} víctimas: {count} simulaciones")
+print("Simulaciones con víctimas salvadas:")
+for i, saved in enumerate(results, start=1):
+    if saved > 0:
+        print(f"Simulación {i}: {saved} víctimas salvadas")
 
 
 # print("Estado inicial del tablero:")

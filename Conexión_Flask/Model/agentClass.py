@@ -303,16 +303,20 @@ class RobotAgent(Agent):
                     # print("Move: ", moved)
                     self.model.actionsLog.append(('agent', self.idRobot, 'move', next_x, next_y))
 
-                    if self.positionY == exit[0] and self.positionX == exit[1]:
+                    if self.positionY == exit[1] and self.positionX == exit[0]:
+                        print("EXIT ",self.positionY , self.positionX )
+                        print("POS POI: ", self.posPOI)
                         if self.rolRobot == 1 and self.model.randomStatus == False:
+                            print("ID ROBOT 1 and status model false")
                             self.rolRobot == 0
                         if self.posPOI is not None: 
+                            print("POS POI IS NOT NONE")
                             self.carriesPOI = False
                             self.model.savedVictims += 1
                             self.savedVictims += 1
                             self.model.actionsLog.append(('agent', self.idRobot, 'victimSaved', next_x, next_y, self.model.savedVictims))
-                            y, x = self.posPOI
-                            self.model.poiPositions.remove((y, x))
+                            x, y = self.posPOI
+                            self.model.poiPositions.remove((x, y))
                             self.model.ensure3POI()
                             print("LENGHT:", len(self.model.poiPositions))
                             print("POI", self.model.poiPositions)
