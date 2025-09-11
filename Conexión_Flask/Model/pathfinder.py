@@ -123,6 +123,8 @@ class Pathfinder:
                     possible_actions = []
                     if cell.fire:
                         possible_actions.append('putOutFire') #'moveToFire', 'partiallyPutOutFire']
+                        possible_actions.append('partiallyPutOutFire')
+                        possible_actions.append('moveToFire')
                     elif cell.smoke:
                         possible_actions.append('putOutSmoke')
                     possible_actions += ['move', 'openDoor', 'knowckDownWall']
@@ -184,7 +186,7 @@ class Pathfinder:
         
         yFPOI, xFPOI = exit_final
         exit = xFPOI, yFPOI
-        print("ROL", self.agent.idRobot, "MIN PATH: ", min_path, "desde", self.agent.positionY, self.agent.positionX, "hasta:",  yFPOI, xFPOI, flush=True)
+        print("ROL", self.agent.idRobot, "MIN PATH: ", min_path, "desde", self.agent.positionX, self.agent.positionY, "hasta:",  exit, flush=True)
         print("Fuegos: ", self.agent.model.firePositions)
         return min_path, exit
 

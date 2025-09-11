@@ -75,6 +75,7 @@ class ExplorerModel(Model):
         self.newlyIgnited = set()  # {(x, y)} casillas que pasaron a fuego en el turno
 
         self.actionsLog = []
+        self.swapRolesNextTurn = []
 
         # Se llena el grid de los estados de las paredes
         # 0 -> ausencia
@@ -214,11 +215,20 @@ class ExplorerModel(Model):
     def getPosPair(self, idRobot):
         for a1, a2 in self.pairs:
             if a1.idRobot == idRobot:
-                print("POS A1", a2.positionX, a2.positionY)
                 return (a2.positionX, a2.positionY)
             elif a2.idRobot == idRobot:
-                print("POS A2", a2.positionX, a2.positionY)
                 return (a1.positionX, a1.positionY)
+        return None
+    
+    def getPair(self, idRobot):
+        print("ENTRO GET PAIR")
+        for a1, a2 in self.pairs:
+            if a1.idRobot == idRobot:
+                # print("PAIR", a2.idRobot)
+                return (a2)
+            elif a2.idRobot == idRobot:
+                # print("PAIR", a1.idRobot)
+                return (a1)
         return None
     
     def print_grid(self):
@@ -589,6 +599,12 @@ class ExplorerModel(Model):
             return False
 
         return True
+    
+    def applyPendingRoleSwaps(self):
+        for a1, a2 in self.swapRolesNextTurn:
+            a1.rolRobot, a2.rolRobot = a2.rolRobot, a1.rolRobot
+            print(f"[INFO] Roles intercambiados: {a1.idRobot}->{a1.rolRobot}, {a2.idRobot}->{a2.rolRobot}")
+        self.swapRolesNextTurn.clear()
 
     def step(self):
         # if not self.checkGameOver():
@@ -601,7 +617,10 @@ class ExplorerModel(Model):
 
         # agente del turno actual
         agent = self.agentList[self.current_turn]
+        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
         print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
+
+        # self.applyPendingRoleSwaps()
 
         agent.step()  # este agente gasta hasta 4 PA en su propio step()
 
@@ -658,7 +677,6 @@ for i in range(ITERATIONS):
     print("ITERATION: ", i)
     model = ExplorerModel(agent_names, False)
     allGrids = []
-    model.getPosPair("purple")
     model.print_grid()
     print("----------------------")
 

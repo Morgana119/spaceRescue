@@ -293,7 +293,7 @@ class RobotAgent(Agent):
             # solo moverse si es vecino
             moved = False
             for d, (dy, dx) in enumerate(dirs):
-                print("MOVE: ", d, dx, dy)
+                # print("MOVE: ", d, dx, dy)
                 # PARA PROBAR EL SAVE VICTIMS SE RESTABLECE SUS AP A 4 
                 # if self.actionPoints <= 0: self.actionPoints = 4
                 
@@ -308,12 +308,14 @@ class RobotAgent(Agent):
                         print("POS POI: ", self.posPOI)
                         if self.rolRobot == 1 and self.model.randomStatus == False:
                             print("ID ROBOT 1 and status model false")
-                            self.rolRobot == 0
+                            self.rolRobot = 0
                         if self.posPOI is not None: 
                             print("POS POI IS NOT NONE")
                             self.carriesPOI = False
                             self.model.savedVictims += 1
                             self.savedVictims += 1
+                            pair = self.model.getPair(self.idRobot)
+                            # self.model.swapRolesNextTurn.append((self, pair))
                             self.model.actionsLog.append(('agent', self.idRobot, 'victimSaved', next_x, next_y, self.model.savedVictims))
                             x, y = self.posPOI
                             self.model.poiPositions.remove((x, y))
@@ -328,20 +330,160 @@ class RobotAgent(Agent):
                 print("No se pudo mover a", (next_x, next_y), " AP: ", self.actionPoints)
                 break
 
-    def estrategyActions(self):
-        if self.carriesPOI != True:
-            pathPOI, goal = self.pathfinder.closestPOI()
-            print(f"Entro al estrategy Action: ", pathPOI,"hasta", goal)
+    def performActionOnTarget(self, x, y, action):
+        if action == 'move':
+            dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+            for d, (dy, dx) in enumerate(dirs):
+                if self.positionY + dy == y and self.positionX + dx == x:
+                    moved = self.move(d)
+                    print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                    # if (x,y) in self.model.poiPositions: 
+                    #     print("LLEGO A LA POSICIÓN DEL POI :)))))))))))))))))))))))))")
+                    #     self.carriesPOI = True
+                    #     print("ESTADO DEL AGENTE: ", self.carriesPOI)
+                    break
+        elif action == 'putOutFire':
+            dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+            for d, (dy, dx) in enumerate(dirs):
+                if self.positionY + dy == y and self.positionX + dx == x:
+                    moved = self.extinguishFireFull(d)
+                    print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                    break
+        elif action == 'putOutSmoke':
+            dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+            for d, (dy, dx) in enumerate(dirs):
+                if self.positionY + dy == y and self.positionX + dx == x:
+                    moved = self.stopFire(d)
+                    print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                    break
+        elif action == 'partiallyPutOutFire':
+            dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+            for d, (dy, dx) in enumerate(dirs):
+                if self.positionY + dy == y and self.positionX + dx == x:
+                    moved = self.stopFire(d)
+                    print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                    break
+        elif action == 'openDoor':
+            dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+            for d, (dy, dx) in enumerate(dirs):
+                if self.positionY + dy == y and self.positionX + dx == x:
+                    moved = self.openDoor(d)
+                    print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                    break
+        elif action == 'knowckDownWall':
+            dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+            for d, (dy, dx) in enumerate(dirs):
+                if self.positionY + dy == y and self.positionX + dx == x:
+                    moved = self.breakWall(d)
+                    print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                    break
+        elif action == 'moveToFire':
+            dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+            for d, (dy, dx) in enumerate(dirs):
+                if self.positionY + dy == y and self.positionX + dx == x:
+                    moved = self.move(d)
+                    print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                    break
 
-            if not pathPOI or not goal:
+    def exploreEstrategy(self, start, pair, pairPOS):
+        print("PAIR: ", pair)
+        for a1, a2 in self.model.pairs:
+            print("Entro aqui")
+            if  self.idRobot == a1.idRobot: 
+                print("CLOSEST POI -----------------------------")
+                path, goal = self.pathfinder.closestPOI()
+                print(f"Entro al estrategy Action: ", path,"hasta", goal)
+                break
+            elif self.idRobot == a2.idRobot:
+                print(f"Agent {self.idRobot} is looking for pair")
+                path = pair.pathfinder.aStar(start, pairPOS)
+                print("Pair PATH", path)
+                goal = pairPOS
+                print("PRINT FIND PAIR", goal, "...........................................................")
+                break
+
+        if not path or not goal:
+            print(f"[Agente {self.idRobot}] No hay POI accesible")
+            path = []
+            return
+
+        if path and goal:
+            print("PARTH", path)
+            print("GOAL:", goal)
+
+            for (x,y), action in path:
+                if self.actionPoints <= 0:
+                    break
+                if action == 'move':
+                    dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                    for d, (dy, dx) in enumerate(dirs):
+                        if self.positionY + dy == y and self.positionX + dx == x:
+                            moved = self.move(d)
+                            print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                            if (x,y) in self.model.poiPositions: 
+                                print("LLEGO A LA POSICIÓN DEL POI :)))))))))))))))))))))))))")
+                                self.carriesPOI = True
+                                print("ESTADO DEL AGENTE: ", self.carriesPOI)
+                            break
+                elif action == 'putOutFire':
+                    dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                    for d, (dy, dx) in enumerate(dirs):
+                        if self.positionY + dy == y and self.positionX + dx == x:
+                            moved = self.extinguishFireFull(d)
+                            print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                            break
+                elif action == 'putOutSmoke':
+                    dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                    for d, (dy, dx) in enumerate(dirs):
+                        if self.positionY + dy == y and self.positionX + dx == x:
+                            moved = self.stopFire(d)
+                            print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                            break
+                elif action == 'partiallyPutOutFire':
+                    dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                    for d, (dy, dx) in enumerate(dirs):
+                        if self.positionY + dy == y and self.positionX + dx == x:
+                            moved = self.stopFire(d)
+                            print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                            break
+                elif action == 'openDoor':
+                    dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                    for d, (dy, dx) in enumerate(dirs):
+                        if self.positionY + dy == y and self.positionX + dx == x:
+                            moved = self.openDoor(d)
+                            print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                            break
+                elif action == 'knowckDownWall':
+                    dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                    for d, (dy, dx) in enumerate(dirs):
+                        if self.positionY + dy == y and self.positionX + dx == x:
+                            moved = self.breakWall(d)
+                            print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                            break
+                elif action == 'moveToFire':
+                    dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                    for d, (dy, dx) in enumerate(dirs):
+                        if self.positionY + dy == y and self.positionX + dx == x:
+                            moved = self.move(d)
+                            print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                            break
+                
+        
+    def carriesPOInotTheSameForBoth(self, start, pair, pairPOS):
+        if self.carriesPOI:
+            print("YO LLEVO LA VICTIMA: ", self.carriesPOI, self.idRobot)
+            # print(f"Agent {self.idRobot} is looking for pair")
+            path, exit = pair.pathfinder.closestExit()
+            goal = pairPOS
+            print("PATH", path, goal)
+
+            if not path or not goal:
                 print(f"[Agente {self.idRobot}] No hay POI accesible")
                 return
 
-            if pathPOI and goal:
-                print("PARTH", pathPOI)
-                print("GOAL:", goal)
-
-                for (x,y), action in pathPOI:
+            if path and goal:
+                for (x,y), action in path:
+                    print(f"X {x} Y {y}")
                     if self.actionPoints <= 0:
                         break
                     
@@ -351,6 +493,10 @@ class RobotAgent(Agent):
                             if self.positionY + dy == y and self.positionX + dx == x:
                                 moved = self.move(d)
                                 print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                # if (x,y) in self.model.poiPositions: 
+                                #     print("LLEGO A LA POSICIÓN DEL POI :)))))))))))))))))))))))))")
+                                #     self.carriesPOI = True
+                                #     print("ESTADO DEL AGENTE: ", self.carriesPOI)
                                 break
                     elif action == 'putOutFire':
                         dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
@@ -394,10 +540,105 @@ class RobotAgent(Agent):
                                 moved = self.move(d)
                                 print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
                                 break
+            
         else:
-            self.saveVictim()
+            print("YO NOOOOOO LLEVO LA VICTIMA: ", self.carriesPOI, self.idRobot)
+            print(f"Agent {self.idRobot} is looking for exit")
+            # path, exit = pair.pathfinder.closestExit()
+            path = pair.pathfinder.aStar(start, pairPOS)
+            print(f"ROL {self.rolRobot, self.idRobot, pair.idRobot, pair.rolRobot}")
+            print("EXIT PATH", path)
+            goal = pairPOS
+            print("PRINT FIND EXIT", goal, "...........................................................")
 
+            if not path or not goal:
+                print(f"[Agente {self.idRobot}] No hay salida accesible")
+                return
 
+            if path and goal:
+                print("PARTH", path)
+                print("GOAL:", goal)
+
+                for (x,y), action in path:
+                    if self.actionPoints <= 0:
+                        print("No hay suficientes AP para realizar el camino a", x, y)
+                        break
+                    
+                    if action == 'move':
+                        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                        for d, (dy, dx) in enumerate(dirs):
+                            if self.positionY + dy == y and self.positionX + dx == x:
+                                moved = self.move(d)
+                                print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                # if (x,y) in self.model.poiPositions: 
+                                #     print("LLEGO A LA POSICIÓN DEL POI :)))))))))))))))))))))))))")
+                                #     self.carriesPOI = True
+                                #     print("ESTADO DEL AGENTE: ", self.carriesPOI)
+                                break
+                    elif action == 'putOutFire':
+                        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                        for d, (dy, dx) in enumerate(dirs):
+                            if self.positionY + dy == y and self.positionX + dx == x:
+                                moved = self.extinguishFireFull(d)
+                                print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                break
+                    elif action == 'putOutSmoke':
+                        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                        for d, (dy, dx) in enumerate(dirs):
+                            if self.positionY + dy == y and self.positionX + dx == x:
+                                moved = self.stopFire(d)
+                                print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                break
+                    elif action == 'partiallyPutOutFire':
+                        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                        for d, (dy, dx) in enumerate(dirs):
+                            if self.positionY + dy == y and self.positionX + dx == x:
+                                moved = self.stopFire(d)
+                                print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                break
+                    elif action == 'openDoor':
+                        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                        for d, (dy, dx) in enumerate(dirs):
+                            if self.positionY + dy == y and self.positionX + dx == x:
+                                moved = self.openDoor(d)
+                                print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                break
+                    elif action == 'knowckDownWall':
+                        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                        for d, (dy, dx) in enumerate(dirs):
+                            if self.positionY + dy == y and self.positionX + dx == x:
+                                moved = self.breakWall(d)
+                                print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                break
+                    elif action == 'moveToFire':
+                        dirs = [(-1,0), (0,1), (1,0), (0,-1)]  # N, E, S, O
+                        for d, (dy, dx) in enumerate(dirs):
+                            if self.positionY + dy == y and self.positionX + dx == x:
+                                moved = self.move(d)
+                                print(f"[Agente {self.idRobot}] se movió a {(x, y)} -> {moved}")
+                                break
+                        
+    def estrategyActions(self):
+        print("ENTRO AL ESTRATEGY ACTIONS-------------------------------------------------")
+        print("FUEGOS", self.model.firePositions)
+        print("ESTADO", self.carriesPOI)
+        pair = self.model.getPair(self.idRobot)
+        pairPOS = self.model.getPosPair(self.idRobot)
+        print("ESTRATEGY PAIR POS: ", pairPOS)
+        yMine,xMine = self.positionY, self.positionX
+        xPair, yPair = pairPOS
+        pairPosYX = yPair, xPair
+        minePosYX = yMine, xMine    
+
+        # self.exploreEstrategy(minePosYX, pair, pairPosYX)
+
+        if self.carriesPOI == False and pair.carriesPOI == False:
+            print("[DEBUG]AMBOS SON FALSO")
+            self.exploreEstrategy(minePosYX, pair, pairPosYX)
+        elif (self.carriesPOI == True and pair.carriesPOI == False) or (self.carriesPOI == False and pair.carriesPOI == True):
+            self.carriesPOInotTheSameForBoth(minePosYX, pair, pairPosYX)
+        # elif (self.health == 1 and pair.health == 0) or (self.health == 0 and pair.health == 1)
+        
     def step(self):
         # Reinicia PA y ejecuta hasta agotarlos
         self.actionPoints = 4
