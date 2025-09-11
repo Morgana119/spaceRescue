@@ -53,7 +53,9 @@ public class AgentManager : MonoBehaviour
         if (!agents.TryGetValue(key, out var go)) return;
 
         StopMoveIfAny(key);
-        go.transform.position = GetAlignedPosition(x, y);
+        Vector3 basePos = GetAlignedPosition(x, y);
+        Vector3 offset = GetAgentOffset(agentName, x, y);
+        go.transform.position = basePos + offset;
     }
 
     public void MoveAgentTo(string agentName, int x, int y, float moveSpeed = -1f, float rotSpeedDeg = -1f)
@@ -64,7 +66,10 @@ public class AgentManager : MonoBehaviour
         if (moveSpeed <= 0f) moveSpeed = defaultMoveSpeed;
         if (rotSpeedDeg <= 0f) rotSpeedDeg = rotationSpeedDeg;
 
-        Vector3 targetPos = GetAlignedPosition(x, y);
+        Vector3 basePos = GetAlignedPosition(x, y);
+        Vector3 offset = GetAgentOffset(agentName, x, y);
+        Vector3 targetPos = basePos + offset;
+
         Quaternion targetRot = RotationFromDelta(go.transform.position, targetPos, go.transform.rotation);
 
         StopMoveIfAny(key);
@@ -165,7 +170,7 @@ public class AgentManager : MonoBehaviour
         Destroy(fireTemp);
     }
 
-    public void RevealPOI(int x, int y, string k)
+    public void RevealPOIDead(int x, int y, string k)
     {   
          Debug.Log($"ENTRO A REVEAL POI");
         Vector3 basePosition = new Vector3(x*4, 2f, y*4);
@@ -195,6 +200,56 @@ public class AgentManager : MonoBehaviour
         Destroy(fireTemp);
     }
 
+    public void RevealPOI(string agentName, int x, int y, string k)
+    {   
+         Debug.Log($"ENTRO A REVEAL POI");
+        Vector3 basePosition = new Vector3(x*4, 2f, y*4);
+
+        // Instanciar un fuego temporal SOLO para obtener su posición real
+        GameObject fireTemp = Instantiate(firePrefab, basePosition, Quaternion.identity);
+
+        // Tomar esa posición como referencia
+        Vector3 position = fireTemp.transform.position;
+        
+        Collider[] colliders = Physics.OverlapSphere(position, 0.1f); // radio pequeñito
+        foreach (Collider col in colliders)
+        {
+            if (col.CompareTag("poi"))
+            {
+                Destroy(col.gameObject);
+            }
+        }
+        
+        GameObject robot = GameObject.Find(agentName);
+        if (robot != null)
+        {
+            GameObject token = null;
+            if (k == "V")
+            {
+                token = Instantiate(victim, position, Quaternion.Euler(0, 90, 0));
+                token.transform.localScale = new Vector3(1.7f, 0.06f, 1.7f);
+                token.transform.SetParent(robot.transform);
+
+                token.transform.localPosition = new Vector3(-0.5f, 4.1f, 0.5f);
+            }
+            else
+            {
+                token = Instantiate(falseAlarm, position, Quaternion.Euler(0, 90, 0));
+
+                Destroy(token, 2f);
+            }
+
+            token.transform.SetParent(robot.transform);
+
+            token.transform.localPosition = new Vector3(0, 1.5f, 0); 
+        }
+        else
+        {
+            Debug.LogWarning($"Robot {agentName} no encontrado.");
+        }
+        Destroy(fireTemp);
+    }
+
     public void DeadPOI (int x, int y, string k) {
         Vector3 basePosition = new Vector3(x * 4, 2f, y * 4);
 
@@ -220,4 +275,47 @@ public class AgentManager : MonoBehaviour
 
         Destroy(fireTemp);
     }
+
+    public void VictimSaved(string agentName)
+    {
+        GameObject robot = GameObject.Find(agentName);
+        if (robot != null)
+        {
+            Transform token = robot.GetComponentInChildren<Transform>(true); 
+            if (token != null && token.CompareTag("victim"))
+            {
+                token.localScale *= 1.5f;
+
+                StartCoroutine(RemoveVictimAfterDelay(token.gameObject));
+            }
+            else
+            {
+                Debug.LogWarning("No se encontró el token Victim dentro de " + agentName);
+            }
+        }
+
+        FindObjectOfType<Counters>().AddSavedVictim();
+    }
+
+    private IEnumerator RemoveVictimAfterDelay(GameObject token)
+    {
+        yield return new WaitForSeconds(2f);
+        Destroy(token);
+    }
+
+
+    private Vector3 GetAgentOffset(string agentName, int x, int y)
+    {
+        // 🔹 Usamos un diccionario para dar a cada agente un offset único
+        int hash = (agentName + x + "_" + y).GetHashCode();
+        Random.InitState(hash);
+
+        // Offset pequeño dentro de la celda (ej: 0.3f)
+        float maxOffset = 0.3f;
+        float offsetX = Random.Range(-maxOffset, maxOffset);
+        float offsetZ = Random.Range(-maxOffset, maxOffset);
+
+        return new Vector3(offsetX, 0f, offsetZ);
+}
+
 }

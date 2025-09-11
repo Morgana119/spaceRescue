@@ -70,44 +70,37 @@ public class ApiHelper : MonoBehaviour
 
                 if (lastFullState != null && lastFullState.actions != null)
                 {
-                    var agentActions = lastFullState.actions
-                        .Where(a => a.source != null && a.source.ToLowerInvariant() == "agent")
+                    var allActions = lastFullState.actions
+                        .Where(a => a.source != null)
                         .ToArray();
 
-                    var modelActions = lastFullState.actions
-                        .Where(a => a.source != null && a.source.ToLowerInvariant() == "model")
-                        .ToArray();
-                    
-                    var initialActions = lastFullState.actions
-                        .Where(a => a.source != null && a.source.ToLowerInvariant() == "initial")
-                        .ToArray();
-
-                    // 1) INIT
-                    foreach (var act in initialActions)
+                    foreach (var act in allActions)
                     {
-                        Debug.Log($"[ApiHelper] INIT: {act.action} ({act.x},{act.y})");
-                        yield return StartCoroutine(ApplyInitialAction(act));
-                    }
-                    // Barrera: espera a que todo esté idle y luego pausa breve
-                    yield return StartCoroutine(agentManager.WaitForAllAgentsIdle());
-                    yield return new WaitForSeconds(groupPause);
+                        Debug.Log($"[ApiHelper] {act.source.ToUpper()}: {act.action} ({act.x},{act.y})");
 
-                    // 2) AGENT
-                    foreach (var act in agentActions)
-                    {
-                        Debug.Log($"[ApiHelper] AGENT: {act.action} ({act.x},{act.y})");
-                        yield return StartCoroutine(ApplyAgentAction(act)); // move ya espera a terminar
-                    }
-                    // Barrera entre grupos
-                    yield return StartCoroutine(agentManager.WaitForAllAgentsIdle());
-                    yield return new WaitForSeconds(groupPause);
+                        switch (act.source.ToLowerInvariant())
+                        {
+                            case "initial":
+                                yield return StartCoroutine(ApplyInitialAction(act));
+                                break;
 
-                    // 3) MODEL
-                    foreach (var act in modelActions)
-                    {
-                        Debug.Log($"[ApiHelper] MODEL: {act.action} ({act.x},{act.y})");
-                        yield return StartCoroutine(ApplyModelAction(act));
+                            case "agent":
+                                yield return StartCoroutine(ApplyAgentAction(act));
+                                break;
+
+                            case "model":
+                                yield return StartCoroutine(ApplyModelAction(act));
+                                break;
+                        }
+
+                        // si quieres, puedes seguir esperando a que se sincronicen los agentes
+                        if (act.source.ToLowerInvariant() == "agent")
+                        {
+                            yield return StartCoroutine(agentManager.WaitForAllAgentsIdle());
+                            yield return new WaitForSeconds(groupPause);
+                        }
                     }
+
                 }
             }
         }
@@ -188,15 +181,17 @@ public class ApiHelper : MonoBehaviour
         else if (act.action == "poiPlaced")
             agentManager.SetPOI(act.x, act.y);
         else if (act.action == "poiReveal")
-            agentManager.RevealPOI(act.x, act.y, act.kind);
+            agentManager.RevealPOI(act.agent, act.x, act.y, act.kind);
         else if (act.action == "deadPOI")
         {
             Debug.Log($"ENTRO A DEADPOI");
-            agentManager.RevealPOI(act.x, act.y, act.kind);
+            agentManager.RevealPOIDead(act.x, act.y, act.kind);
             yield return new WaitForSeconds(actionDelay);
             agentManager.DeadPOI(act.x, act.y, act.kind);
             yield return new WaitForSeconds(pauseAfterMove);
-        }
+        } else if (act.action == "teleport")
+            agentManager.SetAgentPosition(act.agent, act.x, act.y);
+        
 
         yield return new WaitForSeconds(actionDelay);
     }

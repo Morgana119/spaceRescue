@@ -12,6 +12,7 @@
 ### Changed
 - Fire won't move outside of the house grid
 - Extinguish Fire from agent condition
+- Place new POI for fire and smoke 
 
 ### Fixed
 - Y position of tokens and agents

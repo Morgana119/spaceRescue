@@ -221,12 +221,6 @@ class ExplorerModel(Model):
                 fila.append(walls_str)
             print(fila)
     
-    def get_new_fires_payload(self):
-        return {"fires": [{"x": x, "y": y} for (x, y) in self.newFire]}
-
-    def get_new_smoke_payload(self):
-        return {"smokes": [{"x": x, "y": y} for (x, y) in self.newSmoke]}
-    
     def get_full_state(self):
         actions_list = []
         for act in self.actionsLog:
@@ -241,15 +235,19 @@ class ExplorerModel(Model):
                 elif act[1] == "dice":
                     entry.update({"action": "dice", "x": act[2], "y": act[3]})
                 elif act[1] == "poiReveal":
-                    entry.update({"action": "poiReveal", "x": act[2], "y": act[3], "kind": act[4]})
+                    entry.update({"action": "poiReveal", "agent": act[2], "x": act[2], "y": act[3], "kind": act[4]})
                 elif act[1] == "deadPOI":
                     entry.update({"action": "deadPOI", "x": act[2], "y": act[3], "kind": act[4]})
-                elif act[1] == "knockdown":
-                    entry.update({"action": "knockdown", "agent": act[2], "x": act[3], "y": act[4]})
+                elif act[1] == "teleport":
+                    entry.update({"action": "teleport", "agent": act[2], "x": act[3], "y": act[4]})
                 elif act[1] == "breakWall" or act[1] == "weakenWall" or act[1] == "openDoor":
                     entry.update({"action": act[1], "x": act[2], "y": act[3], "direction": act[4]})
                 elif act[1] == "poiPlaced":
                     entry.update({"action": "poiPlaced", "x": act[2], "y": act[3]})
+                elif act[1] == "extinguish":
+                    entry.update({"action": "extinguish", "x": act[2], "y": act[3]})
+                elif act[1] == "stopSmoke":
+                    entry.update({"action": "stopSmoke", "x": act[2], "y": act[3]})
                 else:
                     entry.update({"action": act[1], "data": act[2:]})
 
@@ -292,6 +290,7 @@ class ExplorerModel(Model):
     def RollDice(self,):
         x = random.randint(1, self.width - 2)
         y = random.randint(1, self.height - 2) 
+
         return x, y
     
     def updateSmoke(self):
@@ -528,6 +527,14 @@ class ExplorerModel(Model):
         self.grid[y][x].poiHidden = card
         self.poiPositions.append((x, y))  
         kind = card
+
+        if self.grid[y][x].fire == True:
+            self.grid[y][x].fire = False
+            self.actionsLog.append(('model','extinguish', y, x))
+        elif self.grid[y][x].smoke == True:
+            self.grid[y][x].smoke = False
+            self.actionsLog.append(('model','stopSmoke', y, x))
+
         if by_dice == True: 
             self.actionsLog.append(('model', 'poiPlaced', y, x))
         else:
@@ -558,8 +565,8 @@ class ExplorerModel(Model):
         kind = cell.poiHidden  # 'V' o 'F'
         cell.hasToken = False
         cell.poiHidden = None
-        if (x, y) in self.poiPositions:
-            self.poiPositions.remove((x, y))
+        # if (x, y) in self.poiPositions:
+        #     self.poiPositions.remove((x, y))
 
         if kind == 'V':
             agent.carriesPOI = True
@@ -570,7 +577,7 @@ class ExplorerModel(Model):
         else:
             print(f"[POI|REVEAL] FALSA ALARMA en {(x, y)}")
         
-        self.actionsLog.append(('model', 'poiReveal', y, x, kind))  # kind: 'V' o 'F'
+        self.actionsLog.append(('model', 'poiReveal', agent.idRobot ,  y, x, kind))  # kind: 'V' o 'F'
         # Reponer hasta 3 por dados
         # self.ensure3POI()
 
@@ -588,8 +595,6 @@ class ExplorerModel(Model):
         self.actionsLog.append(('model', 'teleport', agent.idRobot, ax, ay))
         
     def knockdown(self, agent):
-        self.actionsLog.append(('model', 'knockdown', agent.idRobot, agent.positionX, agent.positionY))
-
         # Si llevaba víctima, se pierde
         if agent.carriesPOI:
             agent.carriesPOI = False
@@ -646,14 +651,13 @@ class ExplorerModel(Model):
         print(f"[FIRE] Tirada de fuego desde {(x, y)}")
         self.spreadFire(x, y)
         self.updateSmoke()
-        self.ensure3POI()
         print("YA TERMINO DE EXPANDIR EL FUEGO")
 
         # Si alguien está en una casilla recién encendida, knockdown
         for a in self.agentList:
             if (a.positionX, a.positionY) in self.newlyIgnited:
                 self.knockdown(a)
-
+        self.ensure3POI()
         # Checar si se acabó el juego
         if not self.checkGameOver():
             return
