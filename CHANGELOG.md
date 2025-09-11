@@ -9,6 +9,10 @@
 - Add placePOI into Unity
 - Add revealPOI into unity
 
+### Changed
+- Fire won't move outside of the house grid
+- Extinguish Fire from agent condition
+
 ### Fixed
 - Y position of tokens and agents
 - initial position of agents in Unity

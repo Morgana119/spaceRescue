@@ -359,7 +359,7 @@ class ExplorerModel(Model):
             for direction, (dy, dx) in moves.items():
                 ny, nx = y + dy, x + dx
 
-                if 0 <= ny < self.height and 0 <= nx < self.width and (ny, nx) not in processed_cells:
+                if 0 < ny < self.height-1 and 0 < nx < self.width-1 and (ny, nx) not in processed_cells:
                     wall_status = self.grid[y][x].walls[direction]
 
                     if wall_status == 1:
@@ -424,7 +424,7 @@ class ExplorerModel(Model):
         dy, dx = moves[direction]
         ny, nx = y + dy, x + dx
 
-        while 0 <= ny < self.height and 0 <= nx < self.width:
+        while 0 < ny < self.height-1 and 0 < nx < self.width-1:
             wall_status = self.grid[y][x].walls[direction]
 
             if wall_status != 0:
