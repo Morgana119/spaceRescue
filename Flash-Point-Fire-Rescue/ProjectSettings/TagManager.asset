@@ -8,6 +8,8 @@ TagManager:
   - Smoke
   - openDoor
   - closeDoor
+  - damagedWall
+  - destroyedWall
   layers:
   - Default
   - TransparentFX

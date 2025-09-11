@@ -44,7 +44,7 @@ def all_agents_pos():
 '''
 
 # Agent names
-agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+agent_names = ["purple", "pink", "red", "blue", "orange", "green"]
 
 # Se inicializa el modelo con esos agentes
 # Cada agente recibe un nombre y una posición inicial aleatoria

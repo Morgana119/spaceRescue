@@ -71,7 +71,7 @@ class ExplorerModel(Model):
         self.maxDeadVictims = 4       # pierde si llega aquí
         self.victimsToSave = 7        # gana si llega aquí
         
-        self.ambulanceSpots = [(0, 0), (5, 0), (6, 0), (9, 3), (9, 4), (0, 3), (0, 4), (3, 7), (4, 7)]
+        self.ambulanceSpots = [(5, 0), (6, 0), (9, 3), (9, 4), (0, 3), (0, 4), (3, 7), (4, 7)]
         self.newlyIgnited = set()  # {(x, y)} casillas que pasaron a fuego en el turno
 
         self.actionsLog = []
@@ -105,7 +105,7 @@ class ExplorerModel(Model):
         ]
 
         self.grid = [
-                [Cell(x, y, walls=[int(d) for d in gridValues2[y][x]])
+                [Cell(x, y, walls=[int(d) for d in gridValues[y][x]])
                 for x in range(self.width)]
                 for y in range(self.height)
             ]
@@ -175,6 +175,7 @@ class ExplorerModel(Model):
                     self.agentsGrid.place_agent(agent, (x, y))
                     agent.positionX, agent.positionY = x, y
                     print(f"[INIT] Agente {agent.idRobot} colocado en {(x, y)})")
+                    self.actionsLog.append(('initial', agent.idRobot, 'placeRobot', y, x))
                     break
 
     # Definir parejas -> model.assignPairs
@@ -190,6 +191,7 @@ class ExplorerModel(Model):
             self.agentsGrid.place_agent(a1, (ex, ey))
             a1.positionX, a1.positionY = ex, ey
             print(f"[INIT] {a1.idRobot} en entrada {(ex, ey)}")
+            self.actionsLog.append(('initial', a1.idRobot, 'placeRobot', ey, ex))
 
             # a2 en una orilla adyacente a la entrada
             placed_pair = False
@@ -201,6 +203,7 @@ class ExplorerModel(Model):
                             self.agentsGrid.place_agent(a2, (nx, ny))
                             a2.positionX, a2.positionY = nx, ny
                             print(f"[INIT] {a2.idRobot} en {(nx, ny)} (pareja de {a1.idRobot})")
+                            self.actionsLog.append(('initial', a2.idRobot, 'placeRobot', ny, nx))
                             placed_pair = True
                             break
             # Si no encontró adyacente libre, ponlo en otra entrada libre
@@ -210,6 +213,7 @@ class ExplorerModel(Model):
                         self.agentsGrid.place_agent(a2, (fx, fy))
                         a2.positionX, a2.positionY = fx, fy
                         print(f"[INIT] {a2.idRobot} en {(fx, fy)} (fallback)")
+                        self.actionsLog.append(('initial', a2.idRobot, 'placeRobot', fy, fx))
                         break
     
     def getPosPair(self, idRobot):
@@ -260,25 +264,37 @@ class ExplorerModel(Model):
                     entry.update({"action": "smoke", "x": act[2], "y": act[3]})
                 elif act[1] == "dice":
                     entry.update({"action": "dice", "x": act[2], "y": act[3]})
-                elif act[1] == "poiPlaced":
-                    entry.update({"action": "poiPlaced", "x": act[2], "y": act[3]})
                 elif act[1] == "poiReveal":
                     entry.update({"action": "poiReveal", "x": act[2], "y": act[3], "kind": act[4]})
                 elif act[1] == "knockdown":
                     entry.update({"action": "knockdown", "agent": act[2], "x": act[3], "y": act[4]})
-                elif act[1] == "openDoor":
-                    entry.update({"action": "openDoor", "x": act[2], "y": act[3], "direction": act[4]})
+                elif act[1] == "breakWall" or act[1] == "weakenWall" or act[1] == "openDoor":
+                    entry.update({"action": act[1], "x": act[2], "y": act[3], "direction": act[4]})
                 else:
                     entry.update({"action": act[1], "data": act[2:]})
 
             elif act[0] == "agent":
-                # acciones de agentes
-                entry.update({
+                if act[1] == "victimSaved":
+                    entry.update({
+                    "agent": act[1],        # id del robot
+                    "action": act[2],       # acción que realizó
+                })
+                else:
+                    entry.update({
                     "agent": act[1],        # id del robot
                     "action": act[2],       # acción que realizó
                     "x": act[3], 
-                    "y": act[   4]
+                    "y": act[4],
+                    "direction" : act[5]
                 })
+
+            elif act[0] == "initial":
+                if act[2] == "placeRobot":
+                    entry.update({"name": act[1], "action": act[2], "x": act[3], "y": act[4]})
+                elif act[1] == "poiPlaced":
+                    entry.update({"action": "poiPlaced", "x": act[2], "y": act[3]})
+
+
 
             actions_list.append(entry)
 
@@ -443,7 +459,8 @@ class ExplorerModel(Model):
                 self.firePositions.append((nx, ny))
                 self.actionsLog.append(('model', 'ignite', ny, nx))
                 break
-
+            
+            y, x = ny, nx
             ny += dy
             nx += dx
 
@@ -454,12 +471,14 @@ class ExplorerModel(Model):
             self.updateNeighbors(x, y, direction, 2)
             self.grid[y][x].walls[direction] = 2
             self.damagedWalls += 1
+            self.actionsLog.append(('model', 'weakenWall', y, x, direction))
             print(f"[FIRE|EXPLODE] Pared completa dañada (1→2) en {(x, y)} dir {direction}")
 
         elif wall_status == 2:  # pared dañada → colapsa
             self.updateNeighbors(x, y, direction, 0)
             self.grid[y][x].walls[direction] = 0
             self.damagedWalls += 1
+            self.actionsLog.append(('model', 'breakWall', y, x, direction))
             print(f"[FIRE|EXPLODE] Pared dañada colapsa (2→0) en {(x, y)} dir {direction}")
 
         elif wall_status == 3:  # puerta cerrada → abierta
@@ -511,12 +530,11 @@ class ExplorerModel(Model):
         # Saca la carta del mazo y colócala oculta en la celda
         card = self.poiDeck.pop()   # 'V' o 'F', queda oculta
         print("CELL: ", x, y)
-        cell = self.grid[y][x]
-        cell.hasToken = True
-        cell.poiHidden = card
-        self.poiPositions.append((x, y))  
+        self.grid[y][x].hasToken = True
+        self.grid[y][x].poiHidden = card
+        self.poiPositions.append((x, y))
 
-        self.actionsLog.append(('model', 'poiPlaced', x, y))
+        self.actionsLog.append(('initial', 'poiPlaced', x, y))
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
         return True
 
@@ -557,6 +575,7 @@ class ExplorerModel(Model):
         self.actionsLog.append(('model', 'poiReveal', x, y, kind))  # kind: 'V' o 'F'
         # Reponer hasta 3 por dados
         # self.ensure3POI()
+        self.grid[y][x] = cell
     
     # Escoge la ambulancia más cercana por distancia Manhattan
     def nearestAmbulance(self, x, y):
@@ -566,6 +585,7 @@ class ExplorerModel(Model):
         ax, ay = pos
         self.agentsGrid.move_agent(agent, (ax, ay))
         agent.positionX, agent.positionY = ax, ay
+        agent.inAmbulance = True
         self.actionsLog.append(('model', 'teleport', agent.idRobot, ax, ay))
         
     def knockdown(self, agent):
@@ -607,10 +627,12 @@ class ExplorerModel(Model):
         self.swapRolesNextTurn.clear()
 
     def step(self):
-        # if not self.checkGameOver():
-        #     return
+        if not self.checkGameOver():
+            return
+        
+        if self.currentStep != 0:
+            self.actionsLog = []
 
-        self.actionsLog = []
         self.newlyIgnited = set()
         if not self.agentList:
             return
@@ -619,6 +641,7 @@ class ExplorerModel(Model):
         agent = self.agentList[self.current_turn]
         print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
         print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
+        print("Rol", agent.rolRobot)
 
         # self.applyPendingRoleSwaps()
 
@@ -670,12 +693,13 @@ def gridArray(model):
 
 agent_names = ["purple", "pink", "red", "blue", "orange", "green"]
 num_steps = 50 # cuántos pasos quieres simular desde el estado actual
-ITERATIONS = 1
+ITERATIONS = 100
 results = []  # víctimas salvadas en cada simulación
 
 for i in range(ITERATIONS):
     print("ITERATION: ", i)
     model = ExplorerModel(agent_names, False)
+    # model.agents[0].inAmbulance = True
     allGrids = []
     model.print_grid()
     print("----------------------")
