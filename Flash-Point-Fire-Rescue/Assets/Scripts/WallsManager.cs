@@ -9,7 +9,7 @@ public class WallsManager : MonoBehaviour
 
     public void BreakWall(int x, int y, int direction)
     {
-        Vector3 basePosition = new Vector3(x*4, 5, y*4);
+        Vector3 basePosition = new Vector3(x*4, 4.3f, y*4);
 
         GameObject fireTemp = Instantiate(firePrefab1, basePosition, Quaternion.identity);
 

@@ -10,6 +10,12 @@ TagManager:
   - closeDoor
   - damagedWall
   - destroyedWall
+  - blue
+  - purple
+  - orange
+  - red
+  - pink
+  - green
   layers:
   - Default
   - TransparentFX

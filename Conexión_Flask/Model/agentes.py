@@ -186,7 +186,7 @@ class ExplorerModel(Model):
             self.agentsGrid.place_agent(a1, (ex, ey))
             a1.positionX, a1.positionY = ex, ey
             print(f"[INIT] {a1.idRobot} en entrada {(ex, ey)}")
-            self.actionsLog.append(('initial', a1.idRobot, 'placeRobot', ny, nx))
+            self.actionsLog.append(('initial', a1.idRobot, 'placeRobot', ey, ex))
 
             # a2 en una orilla adyacente a la entrada
             placed_pair = False
@@ -250,10 +250,17 @@ class ExplorerModel(Model):
                     entry.update({"action": act[1], "data": act[2:]})
 
             elif act[0] == "agent":
-                if act[1] == "victimSaved":
+                if act[2] == "victimSaved":
                     entry.update({
                     "agent": act[1],        # id del robot
                     "action": act[2],       # acción que realizó
+                })
+                elif act[2] == "move":
+                    entry.update({
+                    "agent": act[1],        # id del robot
+                    "action": act[2],       # acción que realizó
+                    "x": act[3], 
+                    "y": act[4]
                 })
                 else:
                     entry.update({
@@ -266,11 +273,9 @@ class ExplorerModel(Model):
 
             elif act[0] == "initial":
                 if act[2] == "placeRobot":
-                    entry.update({"name": act[1], "action": act[2], "x": act[3], "y": act[4]})
+                    entry.update({"agent": act[1], "action": act[2], "x": act[3], "y": act[4]})
                 elif act[1] == "poiPlaced":
                     entry.update({"action": "poiPlaced", "x": act[2], "y": act[3]})
-
-
 
             actions_list.append(entry)
 
@@ -280,7 +285,6 @@ class ExplorerModel(Model):
         self.actionsLog = []
 
         return state
-
 
     def RollDice(self,):
         x = random.randint(1, self.width - 2)

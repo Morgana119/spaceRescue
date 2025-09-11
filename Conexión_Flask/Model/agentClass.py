@@ -88,7 +88,7 @@ class RobotAgent(Agent):
         self.model.agentsGrid.move_agent(self, (nx, ny))
         self.positionX, self.positionY = nx, ny
         self.actionPoints -= cost
-        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionX, self.positionY, d))
+        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionY, self.positionX))
 
         # auto-revelar POI si entras en la celda
         if dest.hasToken:

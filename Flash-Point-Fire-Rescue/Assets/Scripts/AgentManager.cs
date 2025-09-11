@@ -1,3 +1,4 @@
+// AgentManager.cs
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -5,8 +6,8 @@ using System.Collections.Generic;
 [System.Serializable]
 public class AgentSlot
 {
-    public string name;        // "purple", "pink", ...
-    public GameObject agent;   // Prefab o instancia en escena
+    public string name;
+    public GameObject agent;
 }
 
 public class AgentManager : MonoBehaviour
@@ -22,69 +23,79 @@ public class AgentManager : MonoBehaviour
     public float defaultMoveSpeed = 2f;
     public float rotationSpeedDeg = 360f;
 
-    [Header("Agents (asignar en Inspector)")]
+    [Header("Agents")]
     public AgentSlot[] agentSlots;
 
-    // Interno: nombre -> GO
-    private Dictionary<string, GameObject> agents = new Dictionary<string, GameObject>();
+    private readonly Dictionary<string, GameObject> agents = new Dictionary<string, GameObject>();
     private readonly Dictionary<string, Coroutine> activeMoves = new Dictionary<string, Coroutine>();
 
-    // Cache offset fire
     private bool hasOffset = false;
     private Vector3 referenceOffset = Vector3.zero;
 
     void Awake()
     {
         agents.Clear();
-        if (agentSlots != null)
-        {
-            foreach (var s in agentSlots)
-            {
-                if (s == null || string.IsNullOrWhiteSpace(s.name) || s.agent == null) {
-                    Debug.LogWarning("AgentSlot vacío o incompleto en AgentManager.");
-                    continue;
-                }
-                if (agents.ContainsKey(s.name))
-                    Debug.LogWarning($"Nombre duplicado '{s.name}' en AgentSlots. Se sobrescribirá la referencia.");
+        if (agentSlots == null) return;
 
-                agents[s.name] = s.agent;
-            }
+        foreach (var s in agentSlots)
+        {
+            if (s == null || string.IsNullOrWhiteSpace(s.name) || s.agent == null) continue;
+            agents[Key(s.name)] = s.agent;
         }
     }
 
-    // ---------- API ----------
     public void SetAgentPosition(string agentName, int x, int y)
     {
-        if (!agents.TryGetValue(agentName, out var go))
-        {
-            Debug.LogWarning($"Agente {agentName} no encontrado.");
-            return;
-        }
+        var key = Key(agentName);
+        if (!agents.TryGetValue(key, out var go)) return;
+
+        StopMoveIfAny(key);
         go.transform.position = GetAlignedPosition(x, y);
     }
 
-    public void MoveAgentTo(string agentName, int x, int y, int direction, float moveSpeed = -1f, float rotSpeedDeg = -1f)
+    public void MoveAgentTo(string agentName, int x, int y, float moveSpeed = -1f, float rotSpeedDeg = -1f)
     {
-        if (!agents.TryGetValue(agentName, out var go))
-        {
-            Debug.LogWarning($"Agente {agentName} no encontrado.");
-            return;
-        }
+        var key = Key(agentName);
+        if (!agents.TryGetValue(key, out var go)) return;
 
         if (moveSpeed <= 0f) moveSpeed = defaultMoveSpeed;
         if (rotSpeedDeg <= 0f) rotSpeedDeg = rotationSpeedDeg;
 
         Vector3 targetPos = GetAlignedPosition(x, y);
-        Quaternion targetRot = RotationFromDirection(direction);
+        Quaternion targetRot = RotationFromDelta(go.transform.position, targetPos, go.transform.rotation);
 
-        if (activeMoves.TryGetValue(agentName, out var running) && running != null)
-            StopCoroutine(running);
-
-        var co = StartCoroutine(MoveThenRotate(agentName, go, targetPos, targetRot, moveSpeed, rotSpeedDeg));
-        activeMoves[agentName] = co;
+        StopMoveIfAny(key);
+        activeMoves[key] = StartCoroutine(MoveAndFaceCoroutine(key, go, targetPos, targetRot, moveSpeed, rotSpeedDeg));
     }
 
-    // ---------- Helpers ----------
+    public IEnumerator WaitUntilIdle(string agentName)
+    {
+        string key = Key(agentName);
+        while (activeMoves.TryGetValue(key, out var co) && co != null) yield return null;
+    }
+
+    public IEnumerator WaitForAllAgentsIdle()
+    {
+        while (true)
+        {
+            bool any = false;
+            foreach (var kv in activeMoves) { if (kv.Value != null) { any = true; break; } }
+            if (!any) yield break;
+            yield return null;
+        }
+    }
+
+    private string Key(string s) => (s ?? "").Trim().ToLowerInvariant();
+
+    private void StopMoveIfAny(string agentKey)
+    {
+        if (activeMoves.TryGetValue(agentKey, out var running) && running != null)
+        {
+            StopCoroutine(running);
+            activeMoves[agentKey] = null;
+        }
+    }
+
     private Vector3 GetAlignedPosition(int x, int y)
     {
         Vector3 basePos = new Vector3(x * cellSize, baseY, y * cellSize);
@@ -98,26 +109,26 @@ public class AgentManager : MonoBehaviour
         return basePos + referenceOffset;
     }
 
-    private Quaternion RotationFromDirection(int direction)
+    private Quaternion RotationFromDelta(Vector3 current, Vector3 target, Quaternion fallback)
     {
-        // 0=N(+Z), 1=E(+X), 2=S(-Z), 3=O(-X)
-        switch ((direction % 4 + 4) % 4)
-        {
-            case 0: return Quaternion.Euler(0f, 0f, 0f);
-            case 1: return Quaternion.Euler(0f, 90f, 0f);
-            case 2: return Quaternion.Euler(0f, 180f, 0f);
-            case 3: return Quaternion.Euler(0f, -90f, 0f);
-        }
-        return Quaternion.identity;
+        Vector3 d = target - current;
+        float dx = d.x, dz = d.z;
+
+        if (Mathf.Abs(dx) < 1e-4f && Mathf.Abs(dz) < 1e-4f) return fallback;
+
+        if (Mathf.Abs(dx) >= Mathf.Abs(dz))
+            return dx > 0f ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.Euler(0f, -90f, 0f);
+        else
+            return dz > 0f ? Quaternion.Euler(0f, 0f, 0f) : Quaternion.Euler(0f, 180f, 0f);
     }
 
-    private IEnumerator MoveThenRotate(string agentName, GameObject agent, Vector3 targetPos, Quaternion targetRot, float moveSpeed, float rotSpeedDeg)
+    private IEnumerator MoveAndFaceCoroutine(string agentKey, GameObject agent, Vector3 targetPos, Quaternion targetRot, float moveSpeed, float rotSpeedDeg)
     {
-        const float posEps = 0.01f;
-        const float rotEps = 0.5f;
+        const float posEps = 0.01f, rotEps = 0.5f;
 
         while (Vector3.Distance(agent.transform.position, targetPos) > posEps)
         {
+            agent.transform.rotation = Quaternion.RotateTowards(agent.transform.rotation, targetRot, rotSpeedDeg * Time.deltaTime);
             agent.transform.position = Vector3.MoveTowards(agent.transform.position, targetPos, moveSpeed * Time.deltaTime);
             yield return null;
         }
@@ -130,30 +141,6 @@ public class AgentManager : MonoBehaviour
         }
         agent.transform.rotation = targetRot;
 
-        if (activeMoves.ContainsKey(agentName)) activeMoves[agentName] = null;
-    }
-
-    public IEnumerator WaitUntilIdle(string agentName)
-    {
-        // Usa la misma clave que empleas en activeMoves (si normalizas el nombre, normaliza aquí también)
-        string key = (agentName ?? "").Trim().ToLowerInvariant();
-
-        while (activeMoves.TryGetValue(key, out var co) && co != null)
-            yield return null;
-    }
-
-    public IEnumerator WaitForAllAgentsIdle()
-    {
-        // Espera a que no quede NINGÚN movimiento activo
-        while (true)
-        {
-            bool any = false;
-            foreach (var kv in activeMoves)
-            {
-                if (kv.Value != null) { any = true; break; }
-            }
-            if (!any) break;
-            yield return null;
-        }
+        activeMoves[agentKey] = null;
     }
 }

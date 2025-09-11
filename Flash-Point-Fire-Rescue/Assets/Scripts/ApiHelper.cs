@@ -152,7 +152,7 @@ public class ApiHelper : MonoBehaviour
         else if (act.action == "move")
         {
             // 1) iniciar movimiento
-            agentManager.MoveAgentTo(act.agent, act.x, act.y, act.direction);
+            agentManager.MoveAgentTo(act.agent, act.x, act.y);
 
             // 2) esperar a que ese agente termine de moverse
             yield return StartCoroutine(agentManager.WaitUntilIdle(act.agent));

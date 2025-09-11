@@ -31,7 +31,7 @@ public class DoorsManager : MonoBehaviour
     public void OpenDoor(int x, int y, int direction)
     {
         // Posición base igual que usarías para el fuego
-        Vector3 basePosition = new Vector3(x*4, 5, y*4);
+        Vector3 basePosition = new Vector3(x*4, 4.3f, y*4);
 
         // Instanciar un fuego temporal SOLO para obtener su posición real
         GameObject fireTemp = Instantiate(firePrefab, basePosition, Quaternion.identity);
@@ -75,7 +75,7 @@ public class DoorsManager : MonoBehaviour
     public void ClosedDoor(int x, int y, int direction)
     {
         // Posición base igual que usarías para el fuego
-        Vector3 basePosition = new Vector3(x*4, 5, y*4);
+        Vector3 basePosition = new Vector3(x*4, 4.3f, y*4);
 
         // Instanciar un fuego temporal SOLO para obtener su posición real
         GameObject fireTemp = Instantiate(firePrefab, basePosition, Quaternion.identity);

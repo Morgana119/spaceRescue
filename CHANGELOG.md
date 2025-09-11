@@ -4,8 +4,13 @@
 
 ### Added
 - Add agents action into Unity
-- create AgentManager
+- Create AgentManager
 - Add agent actions into ApiHelper
+
+### Fixed
+- Y position of tokens and agents
+- initial position of agents in Unity
+
 
 # [fa/saveVictim] (09/09/2025)
 
