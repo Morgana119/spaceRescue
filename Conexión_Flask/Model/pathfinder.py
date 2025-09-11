@@ -15,13 +15,12 @@ class Pathfinder:
             if not (0 <= new_y < self.model.height and 0 <= new_x < self.model.width):
                 continue
 
-            if (self.model.grid[y][x].walls[d] != 0):
+            if (self.model.grid[y][x].walls[d] == 1):
                 continue
 
             dest = self.model.grid[new_y][new_x]
-            if dest.fire and self.agent.carriesPOI:
+            if (dest.fire and self.agent.carriesPOI):
                 continue
-
 
             # agregar vecino como válido
             neighbors.append(((new_y, new_x), d))
@@ -37,17 +36,27 @@ class Pathfinder:
         # 0 -> apagaFuegos | 1 -> salvaVidas
         # acción : (costo_apagaFuego, costo_salvavida)
 
-        # DA -> 62 (3)
-        act_priority = {
-            'putOutFire': (1, 4),
-            'putOutSmoke': (4, 5),
-            'move': (2, 1),
-            'openDoor': (3, 3),
-            'partiallyPutOutFire': (5, 6),
-            'moveToFire': (6, 7),
-            'knowckDownWall': (7, 8),
-        }
-         # DA -> 48 (2)
+        # DA -> 62 (3) | 47 (2)
+        # act_priority = {
+        #     'putOutFire': (1, 4),
+        #     'putOutSmoke': (4, 5),
+        #     'move': (2, 1),
+        #     'openDoor': (3, 3),
+        #     'partiallyPutOutFire': (5, 6),
+        #     'moveToFire': (6, 7),
+        #     'knowckDownWall': (7, 8),
+        # }
+        # DA -> 0
+        # act_priority = {
+        #     'putOutFire': (2, 4),
+        #     'putOutSmoke': (4, 5),
+        #     'move': (3, 1),
+        #     'openDoor': (1, 3),
+        #     'partiallyPutOutFire': (5, 6),
+        #     'moveToFire': (6, 7),
+        #     'knowckDownWall': (7, 8),
+        # }
+         # DA -> 48 (2)  | 52 (2)
         # act_priority = {
         #     'putOutFire': (1, 4),
         #     'putOutSmoke': (5, 5),
@@ -67,7 +76,7 @@ class Pathfinder:
         #     'moveToFire': (7, 7),
         #     'knowckDownWall': (3, 8),
         # }
-        # DA -> 60 victimas salvadas | 56 (2)
+        # DA -> 60 victimas salvadas | 56 (2) | 64 (2) | 59
         # act_priority = {
         #     'putOutFire': (1, 4),
         #     'putOutSmoke': (5, 5),
@@ -77,37 +86,42 @@ class Pathfinder:
         #     'moveToFire': (7, 7),
         #     'knowckDownWall': (3, 8),
         # }
-        # DA -> 51 (2)
-        # act_priority = {
-        #     'putOutFire': (1, 2),
-        #     'putOutSmoke': (5, 5),
-        #     'move': (2, 1),
-        #     'openDoor': (3, 3),
-        #     'partiallyPutOutFire': (6, 6),
-        #     'moveToFire': (7, 7),
-        #     'knowckDownWall': (4, 4),
-        # }
-        # DA -> 
-        # act_priority = {
-        #     'putOutFire': (1, 3),
-        #     'putOutSmoke': (2, 4),
-        #     'moveToFire': (3, 7),
-        #     'openDoor': (4, 2),
-        #     'partiallyPutOutFire': (5, 5),
-        #     'move': (6, 1),
-        #     'knowckDownWall': (7, 6)
-        # }
+
+        if self.agent.model.damagedWalls <= 18:
+            print("ENTRO AL 18")
+            # DA -> 51 (2) | 60 (2) | 44
+            act_priority = {
+                'putOutFire': (3, 2),
+                'putOutSmoke': (5, 5),
+                'move': (4, 1),
+                'openDoor': (2, 3),
+                'partiallyPutOutFire': (6, 6),
+                'moveToFire': (7, 7),
+                'knowckDownWall': (1, 4),
+            }
+        else:
+            print("ENTRO AL MAS")
+            # DA -> 51 (2) | 60 (2) | 44
+            act_priority = {
+                'putOutFire': (1, 2),
+                'putOutSmoke': (5, 5),
+                'move': (4, 1),
+                'openDoor': (2, 3),
+                'partiallyPutOutFire': (6, 6),
+                'moveToFire': (7, 7),
+                'knowckDownWall': (3, 4),
+            }
         best_action = None
         best_priority = float("inf")
 
         for action in possible_actions:
             #print("DEBUG action:", action, type(action))
             if self.agent.rolRobot == 0:  # apagaFuegos
-                print("A* apagafuegos: ", self.agent.rolRobot)
+                # print("A* apagafuegos: ", self.agent.rolRobot)
                 priority = act_priority[action][0]
 
             elif self.agent.rolRobot == 1:  # salvaVidas
-                print("A* SV: ", self.agent.rolRobot)
+                # print("A* SV: ", self.agent.rolRobot)
                 priority = act_priority[action][1]
 
 
@@ -116,23 +130,20 @@ class Pathfinder:
                 best_action = action
 
         # fallback (never return None)
-        if best_action is None:
-            best_action = "move"
+        # if best_action is None:
+        #     best_action = "move"
 
         return best_action
 
 
     def aStar(self, start, goal):
-        # convertir start y goal a (y, x) si vienen como (x, y)
-        # heurística rápida: si el primero < altura -> es Y
-        print("Entro a A*")
-        print("A* ROOOL: ", self.agent.rolRobot, self.agent.idRobot)
         y_Start, x_Start = start
         y_goal, x_goal = goal
+        dirs = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # N, E, S, O
 
         # print(self.agent.idRobot, "ENTRO AL A*")
         openSet = []
-        # closedSet = set()
+        closedSet = set()
         heappush(openSet, (0, (y_Start, x_Start)))
         cameFrom = {}  # ahora guarda: { nodo: (padre, acción) }
         gScore = {(y_Start, x_Start ) : 0}
@@ -159,11 +170,8 @@ class Pathfinder:
             for (neighbor, d) in self.getNeighbors(currentNode):
                 ny, nx = neighbor
 
-                # for (pos, act) in closedSet:
-                #     if pos == (ny, nx):
-                #         continue
-                # if neighbor in closedSet:
-                #     continue
+                if neighbor in closedSet:
+                    continue
 
                 cell = self.model.grid[ny][nx]
 
@@ -178,20 +186,30 @@ class Pathfinder:
                 else:
                     possible_actions = []
                     if cell.fire:
-                        possible_actions.append('putOutFire') #'moveToFire', 'partiallyPutOutFire']
-                        possible_actions.append('partiallyPutOutFire')
-                        possible_actions.append('moveToFire')
+                        possible_actions += ['putOutFire', 'moveToFire', 'partiallyPutOutFire']
                     elif cell.smoke:
                         possible_actions.append('putOutSmoke')
-                    possible_actions += ['move', 'openDoor', 'knowckDownWall']
+                    else:
+                        cell = self.model.grid[y][x]  # celda actual
+                        wall_value = cell.walls[d]      # pared en dirección d desde la celda actual
+
+                        if wall_value == 3:
+                            possible_actions.append('openDoor')
+                        elif wall_value == 0:
+                            possible_actions.append('move')
+                        elif wall_value == 1 or wall_value == 2:
+                            possible_actions.append('knowckDownWall')
+
+                    # possible_actions += ['move', 'openDoor', 'knowckDownWall']
                     best_action = self.choose_best_action(possible_actions, ny, nx)
+                    # print("BEST ACTION: ", best_action)
                     action_cost = {
                         'putOutFire': 2,
                         'putOutSmoke':1,
                         'move': 1,
                         'openDoor': 1,
-                        # 'partiallyPutOutFire': 1,
-                        # 'moveToFire': 2,
+                        'partiallyPutOutFire': 1,
+                        'moveToFire': 2,
                         'knowckDownWall' : 4
                     }[best_action]
 
@@ -204,6 +222,7 @@ class Pathfinder:
                     fScore = tentativeG + self.heuristic(neighbor, goal)
                     heappush(openSet, (fScore, neighbor))
                     cameFrom[neighbor] = (currentNode, best_action)
+                    # print("CURR: ", currentNode, "Best action", best_action)
                     # closedSet.add((currentNode, best_action))
         return None
 

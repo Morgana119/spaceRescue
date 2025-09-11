@@ -50,6 +50,7 @@ class Cell:
         self.smoke = False
         self.isExit = False
         self.poiHidden = None   # 'V' o 'F' si hay POI oculto
+        self.whoHasIt = None # quien tiene el poi
 
 class ExplorerModel(Model):
     def __init__(self,agent_names,  randomStatus,  width = 10, height = 8, numRobots = 6):
@@ -693,7 +694,7 @@ def gridArray(model):
 
 agent_names = ["purple", "pink", "red", "blue", "orange", "green"]
 num_steps = 50 # cuántos pasos quieres simular desde el estado actual
-ITERATIONS = 100
+ITERATIONS = 10
 results = []  # víctimas salvadas en cada simulación
 
 for i in range(ITERATIONS):
@@ -733,10 +734,15 @@ total_simulations = len(results)
 print(f"Simulaciones totales: {total_simulations}")
 print(f"Total de víctimas salvadas: {total_saved}\n")
 
+maxSalvadas = 0
 print("Simulaciones con víctimas salvadas:")
 for i, saved in enumerate(results, start=1):
     if saved > 0:
         print(f"Simulación {i}: {saved} víctimas salvadas")
+        if saved > maxSalvadas:
+            maxSalvadas = saved
+
+print("Maximo salvadas", maxSalvadas)
 
 
 # print("Estado inicial del tablero:")
