@@ -1,5 +1,12 @@
 # Changelog
 
+# [kami/JSON] (10/09/2025)
+
+### Added
+- Add agents action into Unity
+- create AgentManager
+- Add agent actions into ApiHelper
+
 # [fa/saveVictim] (09/09/2025)
 
 ### Added

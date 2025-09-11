@@ -1,114 +1,159 @@
-using UnityEngine; // Necesario para MonoBehaviour y componentes de Unity
-using System.Collections; // Para poder usar corrutinas (IEnumerator)
-using System.Collections.Generic; // Para trabajar con diccionarios
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+
+[System.Serializable]
+public class AgentSlot
+{
+    public string name;        // "purple", "pink", ...
+    public GameObject agent;   // Prefab o instancia en escena
+}
 
 public class AgentManager : MonoBehaviour
 {
+    [Header("Refs")]
+    public GameObject firePrefab;
 
+    [Header("Grid")]
+    public float cellSize = 4f;
+    public float baseY = 0.2f;
+
+    [Header("Speeds")]
+    public float defaultMoveSpeed = 2f;
+    public float rotationSpeedDeg = 360f;
+
+    [Header("Agents (asignar en Inspector)")]
+    public AgentSlot[] agentSlots;
+
+    // Interno: nombre -> GO
+    private Dictionary<string, GameObject> agents = new Dictionary<string, GameObject>();
+    private readonly Dictionary<string, Coroutine> activeMoves = new Dictionary<string, Coroutine>();
+
+    // Cache offset fire
+    private bool hasOffset = false;
+    private Vector3 referenceOffset = Vector3.zero;
+
+    void Awake()
+    {
+        agents.Clear();
+        if (agentSlots != null)
+        {
+            foreach (var s in agentSlots)
+            {
+                if (s == null || string.IsNullOrWhiteSpace(s.name) || s.agent == null) {
+                    Debug.LogWarning("AgentSlot vacío o incompleto en AgentManager.");
+                    continue;
+                }
+                if (agents.ContainsKey(s.name))
+                    Debug.LogWarning($"Nombre duplicado '{s.name}' en AgentSlots. Se sobrescribirá la referencia.");
+
+                agents[s.name] = s.agent;
+            }
+        }
+    }
+
+    // ---------- API ----------
+    public void SetAgentPosition(string agentName, int x, int y)
+    {
+        if (!agents.TryGetValue(agentName, out var go))
+        {
+            Debug.LogWarning($"Agente {agentName} no encontrado.");
+            return;
+        }
+        go.transform.position = GetAlignedPosition(x, y);
+    }
+
+    public void MoveAgentTo(string agentName, int x, int y, int direction, float moveSpeed = -1f, float rotSpeedDeg = -1f)
+    {
+        if (!agents.TryGetValue(agentName, out var go))
+        {
+            Debug.LogWarning($"Agente {agentName} no encontrado.");
+            return;
+        }
+
+        if (moveSpeed <= 0f) moveSpeed = defaultMoveSpeed;
+        if (rotSpeedDeg <= 0f) rotSpeedDeg = rotationSpeedDeg;
+
+        Vector3 targetPos = GetAlignedPosition(x, y);
+        Quaternion targetRot = RotationFromDirection(direction);
+
+        if (activeMoves.TryGetValue(agentName, out var running) && running != null)
+            StopCoroutine(running);
+
+        var co = StartCoroutine(MoveThenRotate(agentName, go, targetPos, targetRot, moveSpeed, rotSpeedDeg));
+        activeMoves[agentName] = co;
+    }
+
+    // ---------- Helpers ----------
+    private Vector3 GetAlignedPosition(int x, int y)
+    {
+        Vector3 basePos = new Vector3(x * cellSize, baseY, y * cellSize);
+        if (!hasOffset && firePrefab != null)
+        {
+            var temp = Instantiate(firePrefab, basePos, Quaternion.identity);
+            referenceOffset = temp.transform.position - basePos;
+            hasOffset = true;
+            Destroy(temp);
+        }
+        return basePos + referenceOffset;
+    }
+
+    private Quaternion RotationFromDirection(int direction)
+    {
+        // 0=N(+Z), 1=E(+X), 2=S(-Z), 3=O(-X)
+        switch ((direction % 4 + 4) % 4)
+        {
+            case 0: return Quaternion.Euler(0f, 0f, 0f);
+            case 1: return Quaternion.Euler(0f, 90f, 0f);
+            case 2: return Quaternion.Euler(0f, 180f, 0f);
+            case 3: return Quaternion.Euler(0f, -90f, 0f);
+        }
+        return Quaternion.identity;
+    }
+
+    private IEnumerator MoveThenRotate(string agentName, GameObject agent, Vector3 targetPos, Quaternion targetRot, float moveSpeed, float rotSpeedDeg)
+    {
+        const float posEps = 0.01f;
+        const float rotEps = 0.5f;
+
+        while (Vector3.Distance(agent.transform.position, targetPos) > posEps)
+        {
+            agent.transform.position = Vector3.MoveTowards(agent.transform.position, targetPos, moveSpeed * Time.deltaTime);
+            yield return null;
+        }
+        agent.transform.position = targetPos;
+
+        while (Quaternion.Angle(agent.transform.rotation, targetRot) > rotEps)
+        {
+            agent.transform.rotation = Quaternion.RotateTowards(agent.transform.rotation, targetRot, rotSpeedDeg * Time.deltaTime);
+            yield return null;
+        }
+        agent.transform.rotation = targetRot;
+
+        if (activeMoves.ContainsKey(agentName)) activeMoves[agentName] = null;
+    }
+
+    public IEnumerator WaitUntilIdle(string agentName)
+    {
+        // Usa la misma clave que empleas en activeMoves (si normalizas el nombre, normaliza aquí también)
+        string key = (agentName ?? "").Trim().ToLowerInvariant();
+
+        while (activeMoves.TryGetValue(key, out var co) && co != null)
+            yield return null;
+    }
+
+    public IEnumerator WaitForAllAgentsIdle()
+    {
+        // Espera a que no quede NINGÚN movimiento activo
+        while (true)
+        {
+            bool any = false;
+            foreach (var kv in activeMoves)
+            {
+                if (kv.Value != null) { any = true; break; }
+            }
+            if (!any) break;
+            yield return null;
+        }
+    }
 }
-
-// public class MoveAgent : MonoBehaviour
-// {
-//     // Header que se mostrará en unity
-//     [Header("Cad cuantos segundos pedir a Flask")]
-//     public float updateInterval = 2f; // cada cuanto se pide información a la API
-
-//     // Header para poner nuestros objetos (robots)
-//     [Header("Referencias a los Transforms de cada agente en la escena")]
-//     // referencias a los Transform de varios agentes en la escena
-//     public Transform morado; 
-//     public Transform rosa;
-//     public Transform rojo;
-//     public Transform azul;
-//     public Transform naranja;
-//     public Transform verde;
-
-//     // Referencia al script ApiHelper (para comunicar con Flask)
-//     private ApiHelper api;
-
-//     // Mapa nombre -> Transform para aplicar posiciones fácilmente
-//     private Dictionary<string, Transform> map;
-
-//     void Awake()
-//     {
-//         api = GetComponent<ApiHelper>(); 
-
-//         // Dictionario de objetos 
-//         map = new Dictionary<string, Transform> {
-//             { "morado",  morado  },
-//             { "rosa",    rosa    },
-//             { "rojo",    rojo    },
-//             { "azul",    azul    },
-//             { "naranja", naranja },
-//             { "verde",   verde   }
-//         };
-//     }
-
-//     // Se llama la corutina
-//     void Start()
-//     {
-//         // StartCoroutine(LoopUpdate()); // se llama a la corutina de LoopUpdate()
-//     }
-    
-//     // Corrutina que actualiza continuamente la posición de TODOS agente
-//     // IEnumerator LoopUpdate(){
-//     //     while(true){
-//     //         yield return StartCoroutine(api.pos_agent()); // Se llama al metodo pos_agent de la api
-
-//     //         // Si se recibio algo, recorre y actualiza cada Transform
-//     //         if (api.lastPayload != null && api.lastPayload.agents != null){
-//     //             // Recorre el arreglo creado en la clase del archivo Varibales AgentsPayLoad
-//     //             foreach (var a in api.lastPayload.agents){
-//     //                 if (map.TryGetValue(a.name, out var t) && t != null){
-//     //                     t.position = new Vector3(a.x, 0, a.z);
-//     //                 } else {
-//     //                     Debug.Log("No hay Transform asignado para el agente: " + a.name);
-//     //                 }
-//     //             }
-
-//     //             // espera el tiempo del intervalo
-//     //             yield return new WaitForSeconds(updateInterval);
-//     //         }
-//     //     }
-//     // }
-    
-//     public void UpdateAgents(List<AgentPayload> agents)
-//     {
-//         foreach (var a in agents)
-//         {
-//             if (map.TryGetValue(a.name, out var t) && t != null)
-//             {
-//                 t.position = new Vector3(a.x, 0, a.z);
-//             }
-//             else
-//             {
-//                 Debug.LogWarning("No hay Transform asignado para el agente: " + a.name);
-//             }
-//         }
-//     }
-
-
-
-
-//     // Corrutina que actualiza continuamente la posición de UN agente
-//     /* IEnumerator UpdateAgentPosition()
-//     {
-//         while (true) // Bucle infinito mientras el objeto exista
-
-//         {
-//             // Llama a la API Flask para obtener la posición (x, y)
-//             yield return StartCoroutine(api.pos_agent()); // solo llamamos al método
-
-//             // Si se recibió correctamente la posición
-//             if (api.lastPos != null)
-//             {
-//                 // Actualiza la posición del objeto en la escena de Unity
-//                 transform.position = new Vector3(api.lastPos.x, api.lastPos.y, 0);
-//             }
-
-//             // Espera el intervalo definido antes de la siguiente actualización
-//             yield return new WaitForSeconds(updateInterval);
-//         }
-//     }*/
-
-// }

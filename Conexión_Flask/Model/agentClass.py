@@ -88,7 +88,7 @@ class RobotAgent(Agent):
         self.model.agentsGrid.move_agent(self, (nx, ny))
         self.positionX, self.positionY = nx, ny
         self.actionPoints -= cost
-        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionX, self.positionY))
+        self.model.actionsLog.append(('agent', self.idRobot, 'move', self.positionX, self.positionY, d))
 
         # auto-revelar POI si entras en la celda
         if dest.hasToken:
@@ -129,7 +129,7 @@ class RobotAgent(Agent):
                 return False
             dest.smoke = False
             self.actionPoints -= 1
-            self.model.actionsLog.append(('agent', self.idRobot, 'stopSmoke', ny, nx))
+            self.model.actionsLog.append(('agent', self.idRobot, 'stopSmoke', ny, nx, d))
             print(f"[Agente {self.idRobot}] STOP_SMOKE en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -141,8 +141,8 @@ class RobotAgent(Agent):
             dest.smoke = True
             self.actionPoints -= 1
             self.model.firePositions.remove((nx, ny))
-            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
-            self.model.actionsLog.append(('agent', self.idRobot, 'smoke', ny, nx))
+            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx, d))
+            self.model.actionsLog.append(('agent', self.idRobot, 'smoke', ny, nx, d))
             
             
             
@@ -163,7 +163,7 @@ class RobotAgent(Agent):
             cell.smoke = False
             self.actionPoints -= 2
             self.model.firePositions.remove((self.positionX, self.positionY))
-            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', self.positionY, self.positionX))
+            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', self.positionY, self.positionX, d))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en propia {(self.positionX, self.positionY)}, AP={self.actionPoints}")
             return True
         else:
@@ -179,7 +179,7 @@ class RobotAgent(Agent):
             dest.smoke = False
             self.actionPoints -= 2
             self.model.firePositions.remove((nx, ny))
-            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx))
+            self.model.actionsLog.append(('agent', self.idRobot, 'extinguish', ny, nx, d))
             print(f"[Agente {self.idRobot}] FULL_EXTINGUISH en {(nx, ny)}, AP={self.actionPoints}")
             return True
 
@@ -260,7 +260,7 @@ class RobotAgent(Agent):
     # def meetPartner(self):
     
     def saveVictim(self):
-        self.model.actionsLog.append(('agent', self.idRobot, 'saveVictim:start', self.positionX, self.positionY))
+        # self.model.actionsLog.append(('agent', self.idRobot, 'saveVictim:start', self.positionX, self.positionY))
         
         if not self.carriesPOI:
             print(f"[Agente {self.idRobot}] No lleva víctima, no va a la salida")
@@ -289,13 +289,11 @@ class RobotAgent(Agent):
                 if self.positionY + dy == next_y and self.positionX + dx == next_x:
                     moved = self.move(d)
                     print("Move: ", moved)
-                    self.model.actionsLog.append(('agent', self.idRobot, 'move', next_x, next_y))
-
                     if self.positionY == exit[0] and self.positionX == exit[1]:
                         if self.posPOI is not None: 
                             self.carriesPOI = False
                             self.model.savedVictims += 1
-                            self.model.actionsLog.append(('agent', self.idRobot, 'victimSaved', next_x, next_y, self.model.savedVictims))
+                            self.model.actionsLog.append(('agent', self.idRobot, 'victimSaved'))
                             y, x = self.posPOI
                             self.model.poiPositions.remove((y, x))
                             self.model.ensure3POI()

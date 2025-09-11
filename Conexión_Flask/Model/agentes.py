@@ -172,6 +172,7 @@ class ExplorerModel(Model):
                     self.agentsGrid.place_agent(agent, (x, y))
                     agent.positionX, agent.positionY = x, y
                     print(f"[INIT] Agente {agent.idRobot} colocado en {(x, y)})")
+                    self.actionsLog.append(('initial', agent.idRobot, 'placeRobot', y, x))
                     break
 
     # Definir parejas -> model.assignPairs
@@ -185,6 +186,7 @@ class ExplorerModel(Model):
             self.agentsGrid.place_agent(a1, (ex, ey))
             a1.positionX, a1.positionY = ex, ey
             print(f"[INIT] {a1.idRobot} en entrada {(ex, ey)}")
+            self.actionsLog.append(('initial', a1.idRobot, 'placeRobot', ny, nx))
 
             # a2 en una orilla adyacente a la entrada
             placed_pair = False
@@ -196,6 +198,7 @@ class ExplorerModel(Model):
                             self.agentsGrid.place_agent(a2, (nx, ny))
                             a2.positionX, a2.positionY = nx, ny
                             print(f"[INIT] {a2.idRobot} en {(nx, ny)} (pareja de {a1.idRobot})")
+                            self.actionsLog.append(('initial', a2.idRobot, 'placeRobot', ny, nx))
                             placed_pair = True
                             break
             # Si no encontró adyacente libre, ponlo en otra entrada libre
@@ -205,6 +208,7 @@ class ExplorerModel(Model):
                         self.agentsGrid.place_agent(a2, (fx, fy))
                         a2.positionX, a2.positionY = fx, fy
                         print(f"[INIT] {a2.idRobot} en {(fx, fy)} (fallback)")
+                        self.actionsLog.append(('initial', a2.idRobot, 'placeRobot', fy, fx))
                         break
     
     def print_grid(self):
@@ -236,8 +240,6 @@ class ExplorerModel(Model):
                     entry.update({"action": "smoke", "x": act[2], "y": act[3]})
                 elif act[1] == "dice":
                     entry.update({"action": "dice", "x": act[2], "y": act[3]})
-                elif act[1] == "poiPlaced":
-                    entry.update({"action": "poiPlaced", "x": act[2], "y": act[3]})
                 elif act[1] == "poiReveal":
                     entry.update({"action": "poiReveal", "x": act[2], "y": act[3], "kind": act[4]})
                 elif act[1] == "knockdown":
@@ -248,21 +250,27 @@ class ExplorerModel(Model):
                     entry.update({"action": act[1], "data": act[2:]})
 
             elif act[0] == "agent":
-                if act[2] == "breakWall" or act[2] == "weakenWall" or act[2] == "openDoor": 
+                if act[1] == "victimSaved":
                     entry.update({
-                        "agent": act[1],        # id del robot
-                        "action": act[2],       # acción que realizó
-                        "x": act[3], 
-                        "y": act[4],
-                        "direction" : act[5]
-                    })
+                    "agent": act[1],        # id del robot
+                    "action": act[2],       # acción que realizó
+                })
                 else:
                     entry.update({
-                        "agent": act[1],        # id del robot
-                        "action": act[2],       # acción que realizó
-                        "x": act[3], 
-                        "y": act[4]
-                    })
+                    "agent": act[1],        # id del robot
+                    "action": act[2],       # acción que realizó
+                    "x": act[3], 
+                    "y": act[4],
+                    "direction" : act[5]
+                })
+
+            elif act[0] == "initial":
+                if act[2] == "placeRobot":
+                    entry.update({"name": act[1], "action": act[2], "x": act[3], "y": act[4]})
+                elif act[1] == "poiPlaced":
+                    entry.update({"action": "poiPlaced", "x": act[2], "y": act[3]})
+
+
 
             actions_list.append(entry)
 
@@ -504,7 +512,7 @@ class ExplorerModel(Model):
         cell.poiHidden = card
         self.poiPositions.append((x, y))  
 
-        self.actionsLog.append(('model', 'poiPlaced', x, y))
+        self.actionsLog.append(('initial', 'poiPlaced', x, y))
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
         return True
 
@@ -591,8 +599,10 @@ class ExplorerModel(Model):
     def step(self):
         if not self.checkGameOver():
             return
+        
+        if self.currentStep != 0:
+            self.actionsLog = []
 
-        self.actionsLog = []
         self.newlyIgnited = set()
         if not self.agentList:
             return
@@ -647,7 +657,7 @@ def gridArray(model):
     return arr
 
 
-agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+agent_names = ["purple", "pink", "red", "blue", "orange", "green"]
 model = ExplorerModel(agent_names, True)
 allGrids = []
 num_steps = 40  # cuántos pasos quieres simular desde el estado actual
