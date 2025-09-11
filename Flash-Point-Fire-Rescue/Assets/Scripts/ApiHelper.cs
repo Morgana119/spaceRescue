@@ -185,7 +185,10 @@ public class ApiHelper : MonoBehaviour
             wallsManager.DamageWall(act.x, act.y, act.direction);
         else if (act.action == "breakWall")
             wallsManager.BreakWall(act.x, act.y, act.direction);
-        
+        else if (act.action == "poiPlaced")
+            agentManager.SetPOI(act.x, act.y);
+        else if (act.action == "poiReveal")
+            agentManager.RevealPOI(act.x, act.y, act.kind);
 
         yield return new WaitForSeconds(actionDelay);
     }
@@ -196,8 +199,8 @@ public class ApiHelper : MonoBehaviour
 
         if (act.action == "placeRobot")
             agentManager.SetAgentPosition(act.agent, act.x, act.y);
-        // else if (act.action == "placePOI")
-        //     agentManager.SetPOI(act.agent, act.x, act.y);
+        else if (act.action == "poiPlaced")
+            agentManager.SetPOI(act.x, act.y);
 
         yield return new WaitForSeconds(actionDelay);
     }

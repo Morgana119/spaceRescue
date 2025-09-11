@@ -16,6 +16,7 @@ TagManager:
   - red
   - pink
   - green
+  - poi
   layers:
   - Default
   - TransparentFX

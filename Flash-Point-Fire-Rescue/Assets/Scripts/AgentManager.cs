@@ -14,6 +14,9 @@ public class AgentManager : MonoBehaviour
 {
     [Header("Refs")]
     public GameObject firePrefab;
+    public GameObject victim;
+    public GameObject falseAlarm;
+    public GameObject poi;
 
     [Header("Grid")]
     public float cellSize = 4f;
@@ -142,5 +145,62 @@ public class AgentManager : MonoBehaviour
         agent.transform.rotation = targetRot;
 
         activeMoves[agentKey] = null;
+    }
+
+    // ---------------- POI ----------------------
+    void Start() 
+    {
+        List<(int x, int y)> initialPoi = new List<(int x, int y)> {
+            (2, 4), (5, 1), (5, 8)
+        };
+
+        foreach (var pos in initialPoi) {
+            SetPOI(pos.x, pos.y);
+        }
+    }
+
+    public void SetPOI(int x, int y)
+    {
+        Vector3 basePosition = new Vector3(x*4, 2f, y*4);
+
+        // Instanciar un fuego temporal SOLO para obtener su posición real
+        GameObject fireTemp = Instantiate(firePrefab, basePosition, Quaternion.identity);
+
+        // Tomar esa posición como referencia
+        Vector3 position = fireTemp.transform.position;
+
+        Instantiate(poi, position, Quaternion.Euler(0, 90, 0));
+
+        // Eliminar el fuego temporal
+        Destroy(fireTemp);
+    }
+
+    public void RevealPOI(int x, int y, string k)
+    {
+        Vector3 basePosition = new Vector3(x*4, 2f, y*4);
+
+        // Instanciar un fuego temporal SOLO para obtener su posición real
+        GameObject fireTemp = Instantiate(firePrefab, basePosition, Quaternion.identity);
+
+        // Tomar esa posición como referencia
+        Vector3 position = fireTemp.transform.position;
+        
+        Collider[] colliders = Physics.OverlapSphere(position, 0.1f); // radio pequeñito
+        foreach (Collider col in colliders)
+        {
+            if (col.CompareTag("poi"))
+            {
+                Destroy(col.gameObject);
+            }
+        }
+        
+        if (k == "V"){
+            Instantiate(victim, position, Quaternion.Euler(0, 90, 0));
+        }
+        else{
+            Instantiate(falseAlarm, position, Quaternion.Euler(0, 90, 0));
+        }
+        // Eliminar el fuego temporal
+        Destroy(fireTemp);
     }
 }

@@ -6,6 +6,8 @@
 - Add agents action into Unity
 - Create AgentManager
 - Add agent actions into ApiHelper
+- Add placePOI into Unity
+- Add revealPOI into unity
 
 ### Fixed
 - Y position of tokens and agents

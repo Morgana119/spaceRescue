@@ -246,6 +246,8 @@ class ExplorerModel(Model):
                     entry.update({"action": "knockdown", "agent": act[2], "x": act[3], "y": act[4]})
                 elif act[1] == "breakWall" or act[1] == "weakenWall" or act[1] == "openDoor":
                     entry.update({"action": act[1], "x": act[2], "y": act[3], "direction": act[4]})
+                elif act[1] == "poiPlaced":
+                    entry.update({"action": "poiPlaced", "x": act[2], "y": act[3]})
                 else:
                     entry.update({"action": act[1], "data": act[2:]})
 
@@ -276,7 +278,6 @@ class ExplorerModel(Model):
                     entry.update({"agent": act[1], "action": act[2], "x": act[3], "y": act[4]})
                 elif act[1] == "poiPlaced":
                     entry.update({"action": "poiPlaced", "x": act[2], "y": act[3]})
-
             actions_list.append(entry)
 
         state = {"actions": actions_list}
@@ -501,22 +502,26 @@ class ExplorerModel(Model):
         return None
     
     # Coloca un POI boca abajo sacando del mazo. Si by_dice=True y la celda no sirve, reintenta por dados
-    def placeNewPOI(self, x, y, by_dice=True):
+    def placeNewPOI(self, x, y, by_dice):
         print("Entro al place New POI------------------------------------------------------")
         if not self.poiDeck:
             print("[POI|PLACE] Mazo vacío: no se puede colocar más POI")
             return False
 
-
         # Saca la carta del mazo y colócala oculta en la celda
         card = self.poiDeck.pop()   # 'V' o 'F', queda oculta
         print("CELL: ", x, y)
-        cell = self.grid[y][x]
-        cell.hasToken = True
-        cell.poiHidden = card
+        self.grid[y][x].hasToken = True
+        self.grid[y][x].poiHidden = card
         self.poiPositions.append((x, y))  
+        kind = card
+        if by_dice == True: 
+            self.actionsLog.append(('model', 'poiPlaced', y, x))
+            self.actionsLog.append(('model', 'poiReveal', y, x, kind))  # kind: 'V' o 'F'
+        else:
+            self.actionsLog.append(('initial', 'poiPlaced', y, x))
+            self.actionsLog.append(('model', 'poiReveal', y, x, kind))  # kind: 'V' o 'F'
 
-        self.actionsLog.append(('initial', 'poiPlaced', x, y))
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
         return True
 
@@ -529,7 +534,7 @@ class ExplorerModel(Model):
                 print("[POI|ENSURE] No hay spots válidos por dados para reponer POI")
                 break
             x, y = spot
-            self.placeNewPOI(x, y, by_dice=False)
+            self.placeNewPOI(x, y, by_dice=True)
         print(f"[POI|STATE] En tablero={len(self.poiPositions)} | Mazo={len(self.poiDeck)}")
     
     # Se llama cuando el agente entra a la celda (x,y) con un POI
@@ -554,9 +559,12 @@ class ExplorerModel(Model):
         else:
             print(f"[POI|REVEAL] FALSA ALARMA en {(x, y)}")
         
-        self.actionsLog.append(('model', 'poiReveal', x, y, kind))  # kind: 'V' o 'F'
+        self.actionsLog.append(('model', 'poiReveal', y, x, kind))  # kind: 'V' o 'F'
         # Reponer hasta 3 por dados
         # self.ensure3POI()
+
+        self.grid[y][x] = cell
+
     
     # Escoge la ambulancia más cercana por distancia Manhattan
     def nearestAmbulance(self, x, y):
