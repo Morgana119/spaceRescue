@@ -189,6 +189,14 @@ public class ApiHelper : MonoBehaviour
             agentManager.SetPOI(act.x, act.y);
         else if (act.action == "poiReveal")
             agentManager.RevealPOI(act.x, act.y, act.kind);
+        else if (act.action == "deadPOI")
+        {
+            Debug.Log($"ENTRO A DEADPOI");
+            agentManager.RevealPOI(act.x, act.y, act.kind);
+            yield return new WaitForSeconds(actionDelay);
+            agentManager.DeadPOI(act.x, act.y, act.kind);
+            yield return new WaitForSeconds(pauseAfterMove);
+        }
 
         yield return new WaitForSeconds(actionDelay);
     }

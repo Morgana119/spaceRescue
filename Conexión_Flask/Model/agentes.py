@@ -242,6 +242,8 @@ class ExplorerModel(Model):
                     entry.update({"action": "dice", "x": act[2], "y": act[3]})
                 elif act[1] == "poiReveal":
                     entry.update({"action": "poiReveal", "x": act[2], "y": act[3], "kind": act[4]})
+                elif act[1] == "deadPOI":
+                    entry.update({"action": "deadPOI", "x": act[2], "y": act[3], "kind": act[4]})
                 elif act[1] == "knockdown":
                     entry.update({"action": "knockdown", "agent": act[2], "x": act[3], "y": act[4]})
                 elif act[1] == "breakWall" or act[1] == "weakenWall" or act[1] == "openDoor":
@@ -353,6 +355,8 @@ class ExplorerModel(Model):
             self.grid[y][x].fire = True
             self.grid[y][x].smoke = False
             self.firePositions.append((x, y))
+            if self.grid[y][x].hasToken == True: 
+                self.deadPOI(x, y)
             self.actionsLog.append(('model', 'stopSmoke', y, x))
             self.actionsLog.append(('model', 'ignite', y, x))
 
@@ -374,6 +378,15 @@ class ExplorerModel(Model):
                     if neighbor.smoke:
                         queue.append((ny, nx))
                         processed_cells.add((ny, nx))
+
+    def deadPOI(self, x, y):
+        cell = self.grid[y][x]
+        kind = cell.poiHidden  # 'V' o 'F'
+        cell.hasToken = False
+        cell.poiHidden = None
+        self.poiPositions.remove((x, y))
+        self.deadVictims += 1
+        self.actionsLog.append(('model', 'deadPOI', y, x, kind))
 
 
     def updateNeighbors(self, x, y, coordinate, newStatus):
@@ -517,10 +530,8 @@ class ExplorerModel(Model):
         kind = card
         if by_dice == True: 
             self.actionsLog.append(('model', 'poiPlaced', y, x))
-            self.actionsLog.append(('model', 'poiReveal', y, x, kind))  # kind: 'V' o 'F'
         else:
             self.actionsLog.append(('initial', 'poiPlaced', y, x))
-            self.actionsLog.append(('model', 'poiReveal', y, x, kind))  # kind: 'V' o 'F'
 
         print(f"[POI|PLACE] POI oculto colocado en {(x, y)} (mazo restante={len(self.poiDeck)})")
         return True
@@ -609,6 +620,7 @@ class ExplorerModel(Model):
         return True
 
     def step(self):
+        self.ensure3POI()
         if not self.checkGameOver():
             return
         
@@ -634,6 +646,7 @@ class ExplorerModel(Model):
         print(f"[FIRE] Tirada de fuego desde {(x, y)}")
         self.spreadFire(x, y)
         self.updateSmoke()
+        self.ensure3POI()
         print("YA TERMINO DE EXPANDIR EL FUEGO")
 
         # Si alguien está en una casilla recién encendida, knockdown

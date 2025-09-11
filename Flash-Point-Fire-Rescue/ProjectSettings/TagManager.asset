@@ -17,6 +17,8 @@ TagManager:
   - pink
   - green
   - poi
+  - falseAlarm
+  - victim
   layers:
   - Default
   - TransparentFX

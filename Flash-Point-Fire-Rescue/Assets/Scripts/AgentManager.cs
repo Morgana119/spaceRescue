@@ -148,16 +148,6 @@ public class AgentManager : MonoBehaviour
     }
 
     // ---------------- POI ----------------------
-    void Start() 
-    {
-        List<(int x, int y)> initialPoi = new List<(int x, int y)> {
-            (2, 4), (5, 1), (5, 8)
-        };
-
-        foreach (var pos in initialPoi) {
-            SetPOI(pos.x, pos.y);
-        }
-    }
 
     public void SetPOI(int x, int y)
     {
@@ -176,7 +166,8 @@ public class AgentManager : MonoBehaviour
     }
 
     public void RevealPOI(int x, int y, string k)
-    {
+    {   
+         Debug.Log($"ENTRO A REVEAL POI");
         Vector3 basePosition = new Vector3(x*4, 2f, y*4);
 
         // Instanciar un fuego temporal SOLO para obtener su posición real
@@ -201,6 +192,32 @@ public class AgentManager : MonoBehaviour
             Instantiate(falseAlarm, position, Quaternion.Euler(0, 90, 0));
         }
         // Eliminar el fuego temporal
+        Destroy(fireTemp);
+    }
+
+    public void DeadPOI (int x, int y, string k) {
+        Vector3 basePosition = new Vector3(x * 4, 2f, y * 4);
+
+        // Instanciar un fuego temporal SOLO para obtener su posición real
+        GameObject fireTemp = Instantiate(firePrefab, basePosition, Quaternion.identity);
+
+        // Tomar esa posición como referencia
+        Vector3 position = fireTemp.transform.position;
+
+        Collider[] colliders = Physics.OverlapSphere(position, 0.1f); // radio pequeñito
+        foreach (Collider col in colliders)
+        {
+            if (col.CompareTag("victim") || col.CompareTag("falseAlarm")) 
+            {
+                Destroy(col.gameObject);
+            }
+        }
+
+        if (k == "V"){
+            FindObjectOfType<Counters>().AddLostVictim();
+        }
+        
+
         Destroy(fireTemp);
     }
 }

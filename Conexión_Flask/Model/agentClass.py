@@ -175,7 +175,7 @@ class RobotAgent(Agent):
                 return False
             if self.actionPoints < 2: 
                 return False
-            if self.grid[y][x].walls[d] != 0:
+            if self.model.grid[y][x].walls[d] != 0:
                 return False
             dest.fire = False
             dest.smoke = False
