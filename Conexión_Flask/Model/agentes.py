@@ -747,7 +747,7 @@ def gridArray(model):
 
 agent_names = ["purple", "pink", "red", "blue", "orange", "green"]
 num_steps = 50 # cuántos pasos quieres simular desde el estado actual
-ITERATIONS = 1000
+ITERATIONS = 100
 results = []  # víctimas salvadas en cada simulación
 ganadas = 0
 perdidas = 0
