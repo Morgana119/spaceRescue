@@ -409,9 +409,16 @@ class ExplorerModel(Model):
         kind = cell.poiHidden  # 'V' o 'F'
         cell.hasToken = False
         cell.poiHidden = None
-        self.poiPositions.remove((x, y))
-        self.available.remove((x, y))
-        self.deadVictims += 1
+
+        if (x, y) in self.available:
+            self.available.remove((x, y))
+
+        if (x, y) in self.poiPositions:
+            self.poiPositions.remove((x, y))
+
+        if kind == 'V':   # solo las víctimas cuentan como muertas
+            self.deadVictims += 1
+
         self.actionsLog.append(('model', 'deadPOI', y, x, kind))
 
 
@@ -593,14 +600,13 @@ class ExplorerModel(Model):
         cell.hasToken = False
         cell.poiHidden = None
 
-        
-
         if kind == 'V':
             agent.carriesPOI = True
             agent.posPOI = (x, y)
             agent.rolRobot = 1
             agent.saveVictim()
             print(f"[POI|REVEAL] VÍCTIMA en {(x, y)} → {agent.idRobot} ahora la transporta")
+            self.actionsLog.append(('model', 'poiReveal', agent.idRobot ,  y, x, kind))  # kind: 'V' o 'F'
             if (x, y) in self.available:
                 self.available.remove((x, y))
         else:
@@ -608,7 +614,6 @@ class ExplorerModel(Model):
             self.ensure3POI()
             print(f"[POI|REVEAL] FALSA ALARMA en {(x, y)}")
         
-        self.actionsLog.append(('model', 'poiReveal', agent.idRobot ,  y, x, kind))  # kind: 'V' o 'F'
         # Reponer hasta 3 por dados
         # self.ensure3POI()
 
@@ -624,7 +629,9 @@ class ExplorerModel(Model):
         self.agentsGrid.move_agent(agent, (ax, ay))
         agent.positionX, agent.positionY = ax, ay
         agent.inAmbulance = True
-        self.actionsLog.append(('model', 'teleport', agent.idRobot, ax, ay))
+        if agent.posPOI != None:
+            self.deadPOI(agent.posPOI[0],agent.posPOI[1])
+        self.actionsLog.append(('model', 'teleport', agent.idRobot, ay, ax))
         
     def knockdown(self, agent):
         # Si llevaba víctima, se pierde

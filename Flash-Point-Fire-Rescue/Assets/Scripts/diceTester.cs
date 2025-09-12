@@ -21,19 +21,19 @@ public class DiceTester : MonoBehaviour
 
     //     // d8: 3, d6: 5
     //     if (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame)
-    //         RollBoth(7, 1);
+    //         RollBoth(1, 1);
 
     //     // d8: 8, d6: 6
     //     if (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame)
-    //         RollBoth(8, 2);
+    //         RollBoth(2, 2);
 
     //     // d8: 1, d6: 2
     //     if (kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame)
-    //         RollBoth(6, 6);
+    //         RollBoth(3, 3);
 
     //     if (kb.rKey.wasPressedThisFrame)
     //     {
-    //         int x = Random.Range(1, 9); // d8: 1..8
+    //         int x = Random.Range(1, 8); // d8: 1..8
     //         int y = Random.Range(1, 7); // d6: 1..6
     //         Debug.Log($"Rolling random: d8={x}, d6={y}");
     //         RollBoth(x, y);
