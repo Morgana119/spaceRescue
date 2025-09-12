@@ -38,12 +38,12 @@ public class DiceFaceRotator : MonoBehaviour
             {
                 new Vector3(202, 96, 158),    // 1+
                 new Vector3(153, -83, 111),     // 2+
-                new Vector3(202, -190, 66),   // 3+
+                new Vector3(206, -258, 72),   // 3+
                 new Vector3(153, -83, 202),    // 4+
                 new Vector3(202, 96, 339),     // 5+
                 new Vector3(153, -83, 288),   // 6+
                 new Vector3(202, 96, 247),    // 7+
-                new Vector3(153, -83, 183),     // 8
+                new Vector3(153, -83, 25),     // 8+
             };
         }
     }

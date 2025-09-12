@@ -604,14 +604,13 @@ class ExplorerModel(Model):
         cell.hasToken = False
         cell.poiHidden = None
 
-        
-
         if kind == 'V':
             agent.carriesPOI = True
             agent.posPOI = (x, y)
             agent.rolRobot = 1
             agent.saveVictim()
             print(f"[POI|REVEAL] VÍCTIMA en {(x, y)} → {agent.idRobot} ahora la transporta")
+            self.actionsLog.append(('model', 'poiReveal', agent.idRobot ,  y, x, kind))  # kind: 'V' o 'F'
             if (x, y) in self.available:
                 self.available.remove((x, y))
         else:
@@ -619,7 +618,6 @@ class ExplorerModel(Model):
             self.ensure3POI()
             print(f"[POI|REVEAL] FALSA ALARMA en {(x, y)}")
         
-        self.actionsLog.append(('model', 'poiReveal', agent.idRobot ,  y, x, kind))  # kind: 'V' o 'F'
         # Reponer hasta 3 por dados
         # self.ensure3POI()
 

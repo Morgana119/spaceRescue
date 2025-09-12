@@ -18,6 +18,7 @@ public class AgentManager : MonoBehaviour
     public GameObject falseAlarm;
     public GameObject poi;
 
+
     [Header("Grid")]
     public float cellSize = 4f;
     public float baseY = 0.2f;
@@ -31,6 +32,7 @@ public class AgentManager : MonoBehaviour
 
     private readonly Dictionary<string, GameObject> agents = new Dictionary<string, GameObject>();
     private readonly Dictionary<string, Coroutine> activeMoves = new Dictionary<string, Coroutine>();
+    private readonly Dictionary<string, GameObject> carriedTokens = new Dictionary<string, GameObject>();
 
     private bool hasOffset = false;
     private Vector3 referenceOffset = Vector3.zero;
@@ -202,40 +204,47 @@ public class AgentManager : MonoBehaviour
 
     public void RevealPOI(string agentName, int x, int y, string k)
     {
-        // 1) limpiar el POI de la celda
+        // limpia el poi suelto en la celda
         Vector3 cellPos = GetAlignedPosition(x, y);
         foreach (var col in Physics.OverlapSphere(cellPos, 1f))
             if (col.CompareTag("poi")) Destroy(col.gameObject);
 
-        // 2) ubicar el robot desde tu diccionario (todo minúscula)
-        if (!agents.TryGetValue(Key(agentName), out var robot) || robot == null)
+        var key = Key(agentName);
+        if (!agents.TryGetValue(key, out var robot) || robot == null)
         {
-            Debug.LogWarning($"Robot '{agentName}' no encontrado.");
+            Debug.LogWarning($"robot '{agentName}' no encontrado.");
             return;
         }
 
         if (k == "V")
         {
-            // 3) instanciar como HIJO del robot y posicionar en local Y
             var token = Instantiate(victim);
-            // importante: parentear con worldPositionStays = false para trabajar en local
+            // asegúrate de que el objeto tenga tag "victim"
+            token.tag = "victim";
+
+            // parentear en local (para que la Y sea local)
             token.transform.SetParent(robot.transform, worldPositionStays: false);
-
-            // opcional: ajustar escala del token
             token.transform.localScale = new Vector3(0.7f, 0.006f, 0.7f);
-
-            // *** aquí “sube” sobre Y respecto al robot ***
             token.transform.localPosition = new Vector3(0.33f, 1.7f, 0.33f);
+
+            token.transform.localRotation = Quaternion.Euler(0, 180, 0);
+
+            // opcional: evitar que física lo baje
+            var rb = token.GetComponent<Rigidbody>();
+            if (rb != null) rb.isKinematic = true;
+            var col = token.GetComponent<Collider>();
+            if (col != null) col.isTrigger = true;
+
+            // guarda referencia para quitarlo después
+            carriedTokens[key] = token;
         }
         else
         {
-            // Falsa alarma: NUNCA hija del robot, solo aparece y se puede borrar
+            // falsa alarma: nunca hija del robot
             var fa = Instantiate(falseAlarm, cellPos, Quaternion.Euler(0, 90, 0));
-            // si no quieres que quede, elimínala
-            Destroy(fa, 2f);
+            Destroy(fa, 0.5f);
         }
     }
-
 
     public void DeadPOI (int x, int y, string k) {
         Vector3 basePosition = new Vector3(x * 4, 2f, y * 4);
@@ -273,7 +282,7 @@ public class AgentManager : MonoBehaviour
             if (token != null && token.CompareTag("victim"))
             {
                 Debug.Log("Entro al segundo if de VS" + agentName);
-                token.localScale *= 1.5f;
+                token.localScale *= 1.05f;
 
                 StartCoroutine(RemoveVictimAfterDelay(token.gameObject));
             }
