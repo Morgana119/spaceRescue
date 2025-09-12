@@ -36,7 +36,7 @@ import datetime
 import random
 
 from .agentClass import RobotAgent
-from pathfinder import Pathfinder
+from .pathfinder import Pathfinder
 from collections import deque
 
 class Cell:
@@ -128,6 +128,7 @@ class ExplorerModel(Model):
         self.poiDeck = ['V'] * 10 + ['F'] * 5
         self.random.shuffle(self.poiDeck)
         self.poiPositions = []
+        self.available = []
 
         # Iniciales
         initPOI = [(4, 2), (1, 5), (8, 5)]
@@ -260,7 +261,7 @@ class ExplorerModel(Model):
                 elif act[1] == "dice":
                     entry.update({"action": "dice", "x": act[2], "y": act[3]})
                 elif act[1] == "poiReveal":
-                    entry.update({"action": "poiReveal", "agent": act[2], "x": act[2], "y": act[3], "kind": act[4]})
+                    entry.update({"action": "poiReveal", "agent": act[2], "x": act[3], "y": act[4], "kind": act[5]})
                 elif act[1] == "deadPOI":
                     entry.update({"action": "deadPOI", "x": act[2], "y": act[3], "kind": act[4]})
                 elif act[1] == "teleport":
@@ -379,8 +380,8 @@ class ExplorerModel(Model):
             self.grid[y][x].fire = True
             self.grid[y][x].smoke = False
             self.firePositions.append((x, y))
-            if self.grid[y][x].hasToken == True: 
-                self.deadPOI(x, y)
+            # if self.grid[y][x].hasToken == True: 
+            #     self.deadPOI(x, y)
             self.actionsLog.append(('model', 'stopSmoke', y, x))
             self.actionsLog.append(('model', 'ignite', y, x))
 
@@ -409,6 +410,7 @@ class ExplorerModel(Model):
         cell.hasToken = False
         cell.poiHidden = None
         self.poiPositions.remove((x, y))
+        self.available.remove((x, y))
         self.deadVictims += 1
         self.actionsLog.append(('model', 'deadPOI', y, x, kind))
 
@@ -549,7 +551,8 @@ class ExplorerModel(Model):
         print("CELL: ", x, y)
         self.grid[y][x].hasToken = True
         self.grid[y][x].poiHidden = card
-        self.poiPositions.append((x, y))  
+        self.poiPositions.append((x, y)) 
+        self.available.append((x,y)) 
         kind = card
 
         if self.grid[y][x].fire == True:
@@ -589,8 +592,8 @@ class ExplorerModel(Model):
         kind = cell.poiHidden  # 'V' o 'F'
         cell.hasToken = False
         cell.poiHidden = None
-        # if (x, y) in self.poiPositions:
-        #     self.poiPositions.remove((x, y))
+
+        
 
         if kind == 'V':
             agent.carriesPOI = True
@@ -598,7 +601,11 @@ class ExplorerModel(Model):
             agent.rolRobot = 1
             agent.saveVictim()
             print(f"[POI|REVEAL] VÍCTIMA en {(x, y)} → {agent.idRobot} ahora la transporta")
+            if (x, y) in self.available:
+                self.available.remove((x, y))
         else:
+            self.deadPOI(x, y)
+            self.ensure3POI()
             print(f"[POI|REVEAL] FALSA ALARMA en {(x, y)}")
         
         self.actionsLog.append(('model', 'poiReveal', agent.idRobot ,  y, x, kind))  # kind: 'V' o 'F'
@@ -690,8 +697,12 @@ class ExplorerModel(Model):
 
         # Si alguien está en una casilla recién encendida, knockdown
         for a in self.agentList:
-            if (a.positionX, a.positionY) in self.newlyIgnited:
+            if (a.positionY, a.positionX) in self.newlyIgnited:
                 self.knockdown(a)
+        
+        for a in self.poiPositions:
+            if self.grid[a[1]][a[0]].fire == True and self.grid[a[1]][a[0]].hasToken == True:
+                self.deadPOI(a[0], a[1])
         self.ensure3POI()
         # Checar si se acabó el juego
         if not self.checkGameOver():

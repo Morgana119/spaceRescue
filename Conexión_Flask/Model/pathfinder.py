@@ -268,7 +268,7 @@ class Pathfinder:
     ## Encontrar un POI
     def closestPOI(self):
         # print("Entro al closest POI")
-        pois = self.agent.model.poiPositions
+        pois = self.agent.model.available
 
         if (self.agent.positionY, self.agent.positionX) in pois:
             # print(f"POI {self.agent.idRobot} YA ESTÁ en un poi -> no busca más")

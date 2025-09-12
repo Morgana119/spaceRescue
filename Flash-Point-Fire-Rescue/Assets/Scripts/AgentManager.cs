@@ -172,7 +172,7 @@ public class AgentManager : MonoBehaviour
 
     public void RevealPOIDead(int x, int y, string k)
     {   
-         Debug.Log($"ENTRO A REVEAL POI");
+        Debug.Log($"ENTRO A REVEAL POI");
         Vector3 basePosition = new Vector3(x*4, 2f, y*4);
 
         // Instanciar un fuego temporal SOLO para obtener su posición real
@@ -181,7 +181,7 @@ public class AgentManager : MonoBehaviour
         // Tomar esa posición como referencia
         Vector3 position = fireTemp.transform.position;
         
-        Collider[] colliders = Physics.OverlapSphere(position, 0.1f); // radio pequeñito
+        Collider[] colliders = Physics.OverlapSphere(position, 1f); // radio pequeñito
         foreach (Collider col in colliders)
         {
             if (col.CompareTag("poi"))
@@ -201,54 +201,41 @@ public class AgentManager : MonoBehaviour
     }
 
     public void RevealPOI(string agentName, int x, int y, string k)
-    {   
-         Debug.Log($"ENTRO A REVEAL POI");
-        Vector3 basePosition = new Vector3(x*4, 2f, y*4);
+    {
+        // 1) limpiar el POI de la celda
+        Vector3 cellPos = GetAlignedPosition(x, y);
+        foreach (var col in Physics.OverlapSphere(cellPos, 1f))
+            if (col.CompareTag("poi")) Destroy(col.gameObject);
 
-        // Instanciar un fuego temporal SOLO para obtener su posición real
-        GameObject fireTemp = Instantiate(firePrefab, basePosition, Quaternion.identity);
-
-        // Tomar esa posición como referencia
-        Vector3 position = fireTemp.transform.position;
-        
-        Collider[] colliders = Physics.OverlapSphere(position, 0.1f); // radio pequeñito
-        foreach (Collider col in colliders)
+        // 2) ubicar el robot desde tu diccionario (todo minúscula)
+        if (!agents.TryGetValue(Key(agentName), out var robot) || robot == null)
         {
-            if (col.CompareTag("poi"))
-            {
-                Destroy(col.gameObject);
-            }
+            Debug.LogWarning($"Robot '{agentName}' no encontrado.");
+            return;
         }
-        
-        GameObject robot = GameObject.Find(agentName);
-        if (robot != null)
+
+        if (k == "V")
         {
-            GameObject token = null;
-            if (k == "V")
-            {
-                token = Instantiate(victim, position, Quaternion.Euler(0, 90, 0));
-                token.transform.localScale = new Vector3(1.7f, 0.06f, 1.7f);
-                token.transform.SetParent(robot.transform);
+            // 3) instanciar como HIJO del robot y posicionar en local Y
+            var token = Instantiate(victim);
+            // importante: parentear con worldPositionStays = false para trabajar en local
+            token.transform.SetParent(robot.transform, worldPositionStays: false);
 
-                token.transform.localPosition = new Vector3(-0.5f, 4.1f, 0.5f);
-            }
-            else
-            {
-                token = Instantiate(falseAlarm, position, Quaternion.Euler(0, 90, 0));
+            // opcional: ajustar escala del token
+            token.transform.localScale = new Vector3(0.7f, 0.006f, 0.7f);
 
-                Destroy(token, 2f);
-            }
-
-            token.transform.SetParent(robot.transform);
-
-            token.transform.localPosition = new Vector3(0, 1.5f, 0); 
+            // *** aquí “sube” sobre Y respecto al robot ***
+            token.transform.localPosition = new Vector3(0.33f, 1.7f, 0.33f);
         }
         else
         {
-            Debug.LogWarning($"Robot {agentName} no encontrado.");
+            // Falsa alarma: NUNCA hija del robot, solo aparece y se puede borrar
+            var fa = Instantiate(falseAlarm, cellPos, Quaternion.Euler(0, 90, 0));
+            // si no quieres que quede, elimínala
+            Destroy(fa, 2f);
         }
-        Destroy(fireTemp);
     }
+
 
     public void DeadPOI (int x, int y, string k) {
         Vector3 basePosition = new Vector3(x * 4, 2f, y * 4);
@@ -262,7 +249,7 @@ public class AgentManager : MonoBehaviour
         Collider[] colliders = Physics.OverlapSphere(position, 0.1f); // radio pequeñito
         foreach (Collider col in colliders)
         {
-            if (col.CompareTag("victim") || col.CompareTag("falseAlarm")) 
+            if (col.CompareTag("victim") || col.CompareTag("falseAlarm") || col.CompareTag("poi")) 
             {
                 Destroy(col.gameObject);
             }
@@ -281,9 +268,11 @@ public class AgentManager : MonoBehaviour
         GameObject robot = GameObject.Find(agentName);
         if (robot != null)
         {
+            Debug.Log("Entro a primer if de VS" + agentName);
             Transform token = robot.GetComponentInChildren<Transform>(true); 
             if (token != null && token.CompareTag("victim"))
             {
+                Debug.Log("Entro al segundo if de VS" + agentName);
                 token.localScale *= 1.5f;
 
                 StartCoroutine(RemoveVictimAfterDelay(token.gameObject));
