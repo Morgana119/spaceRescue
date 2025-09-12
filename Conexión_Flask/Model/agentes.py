@@ -35,8 +35,8 @@ import time
 import datetime
 import random
 
-from agentClass import RobotAgent
-from pathfinder import Pathfinder
+from .agentClass import RobotAgent
+from .pathfinder import Pathfinder
 from collections import deque
 
 class Cell:
@@ -342,31 +342,6 @@ class ExplorerModel(Model):
 
         for y, x in initial_ignition_points:
             self.propagateFire(y, x)
-  
-
-    # def propagateFire(self, y_start, x_start):
-    #     queue = deque()
-    #     processed_cells = set()
-
-    #     queue.append((y_start, x_start))
-    #     processed_cells.add((y_start, x_start))
-
-    #     while queue:
-    #         y, x = queue.popleft()
-            
-    #         self.grid[y][x].fire = True
-    #         self.grid[y][x].smoke = False
-    #         self.actionsLog.append(('model', 'stopSmoke', y, x))
-    #         self.actionsLog.append(('model', 'ignite', y, x))
-
-    #         for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-    #             ny, nx = y + dy, x + dx
-
-    #             if 0 <= ny < self.height and 0 <= nx < self.width and (ny, nx) not in processed_cells:
-    #                 neighbor = self.grid[ny][nx]
-    #                 if neighbor.smoke:
-    #                     queue.append((ny, nx))
-    #                     processed_cells.add((ny, nx))
 
     def propagateFire(self, y_start, x_start):
         queue = deque()
@@ -423,8 +398,6 @@ class ExplorerModel(Model):
             self.deadVictims += 1
 
         self.actionsLog.append(('model', 'deadPOI', y, x, kind))
-
-
 
     def updateNeighbors(self, x, y, coordinate, newStatus):
         update = (coordinate + 2) % 4
@@ -495,7 +468,6 @@ class ExplorerModel(Model):
             ny += dy
             nx += dx
 
-
     def damageWall(self, y, x, direction, wall_status):
         print("ENTRO A DAMAGEWALL")
         if wall_status == 1:  # pared intacta → dañada
@@ -518,8 +490,6 @@ class ExplorerModel(Model):
             self.grid[y][x].walls[direction] = 0
             self.actionsLog.append(('model', 'openDoor', y, x, direction))
             print(f"[FIRE|EXPLODE] Puerta cerrada se abre en {(x, y)} dir {direction}")
-        
-
 
     # Válida = dentro de tablero, sin fuego, sin otro POI.
     # Permitimos humo y agentes (si quieres evitar agentes, agrega un check a is_cell_empty).
@@ -812,16 +782,3 @@ for i, saved in enumerate(results, start=1):
             maxSalvadas = saved
 
 print("Maximo salvadas", maxSalvadas)
-
-
-# agent = model.agents[0]
-
-# print(f"\n[Simulación {i+1}]")
-# print(f"Agente {agent.idRobot} empieza en {agent.positionX, agent.positionY}")
-# agent.carriesPOI = True
-# agent.posPOI = (5,1)
-
-# if path:
-#     print("Camino encontrado:", path)
-# else:
-#     print("No hay camino disponible.")

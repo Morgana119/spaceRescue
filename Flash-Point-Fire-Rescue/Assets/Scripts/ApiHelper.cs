@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.Networking;
-using System.Collections;   // ← necesario para IEnumerator
+using System.Collections;
 using System.Linq;
 
 [System.Serializable]
