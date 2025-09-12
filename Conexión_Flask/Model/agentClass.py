@@ -35,7 +35,7 @@ import time
 import datetime
 import random
 
-from .pathfinder import Pathfinder
+from pathfinder import Pathfinder
 
 class RobotAgent(Agent):
     def __init__(self,name, model):

@@ -32,64 +32,9 @@ class Pathfinder:
         return abs(x2 - x1) + abs(y2 - y1)  # Manhattan
 
     def choose_best_action(self, possible_actions, ny, nx):
-        # print("Entro al choose", flush=True)
         # 0 -> apagaFuegos | 1 -> salvaVidas
         # acción : (costo_apagaFuego, costo_salvavida)
-
-        # DA -> 62 (3) | 47 (2)
-        # act_priority = {
-        #     'putOutFire': (1, 4),
-        #     'putOutSmoke': (4, 5),
-        #     'move': (2, 1),
-        #     'openDoor': (3, 3),
-        #     'partiallyPutOutFire': (5, 6),
-        #     'moveToFire': (6, 7),
-        #     'knowckDownWall': (7, 8),
-        # }
-        # DA -> 0
-        # act_priority = {
-        #     'putOutFire': (2, 4),
-        #     'putOutSmoke': (4, 5),
-        #     'move': (3, 1),
-        #     'openDoor': (1, 3),
-        #     'partiallyPutOutFire': (5, 6),
-        #     'moveToFire': (6, 7),
-        #     'knowckDownWall': (7, 8),
-        # }
-         # DA -> 48 (2)  | 52 (2)
-        # act_priority = {
-        #     'putOutFire': (1, 4),
-        #     'putOutSmoke': (5, 5),
-        #     'move': (2, 1),
-        #     'openDoor': (4, 3),
-        #     'partiallyPutOutFire': (6, 6),
-        #     'moveToFire': (7, 7),
-        #     'knowckDownWall': (3, 8),
-        # }
-         # DA -> 45 (2)
-        # act_priority = {
-        #     'putOutFire': (1, 4),
-        #     'putOutSmoke': (5, 5),
-        #     'move': (2, 1),
-        #     'openDoor': (4, 3),
-        #     'partiallyPutOutFire': (6, 6),
-        #     'moveToFire': (7, 7),
-        #     'knowckDownWall': (3, 8),
-        # }
-        # DA -> 60 victimas salvadas | 56 (2) | 64 (2) | 59
-        # act_priority = {
-        #     'putOutFire': (1, 4),
-        #     'putOutSmoke': (5, 5),
-        #     'move': (2, 1),
-        #     'openDoor': (4, 3),
-        #     'partiallyPutOutFire': (6, 6),
-        #     'moveToFire': (7, 7),
-        #     'knowckDownWall': (3, 8),
-        # }
-
         if self.agent.model.damagedWalls <= 18:
-            print("ENTRO AL 18")
-            # DA -> 51 (2) | 60 (2) | 44
             act_priority = {
                 'putOutFire': (3, 2),
                 'putOutSmoke': (5, 5),
@@ -100,8 +45,6 @@ class Pathfinder:
                 'knowckDownWall': (1, 4),
             }
         else:
-            print("ENTRO AL MAS")
-            # DA -> 51 (2) | 60 (2) | 44
             act_priority = {
                 'putOutFire': (1, 2),
                 'putOutSmoke': (5, 5),

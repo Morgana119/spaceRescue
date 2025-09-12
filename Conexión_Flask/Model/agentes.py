@@ -35,8 +35,8 @@ import time
 import datetime
 import random
 
-from .agentClass import RobotAgent
-from .pathfinder import Pathfinder
+from agentClass import RobotAgent
+from pathfinder import Pathfinder
 from collections import deque
 
 class Cell:
@@ -71,6 +71,9 @@ class ExplorerModel(Model):
         self.maxDamagedWalls = 24     # pierde si llega aquí
         self.maxDeadVictims = 4       # pierde si llega aquí
         self.victimsToSave = 7        # gana si llega aquí
+        # self.hasDiedByWalls  = 0
+        # self.hasDiedByVictims = 0
+
         
         self.ambulanceSpots = [(5, 0), (6, 0), (9, 3), (9, 4), (0, 3), (0, 4), (3, 7), (4, 7)]
         self.newlyIgnited = set()  # {(x, y)} casillas que pasaron a fuego en el turno
@@ -409,10 +412,18 @@ class ExplorerModel(Model):
         kind = cell.poiHidden  # 'V' o 'F'
         cell.hasToken = False
         cell.poiHidden = None
-        self.poiPositions.remove((x, y))
-        self.available.remove((x, y))
-        self.deadVictims += 1
+
+        if (x, y) in self.available:
+            self.available.remove((x, y))
+
+        if (x, y) in self.poiPositions:
+            self.poiPositions.remove((x, y))
+
+        if kind == 'V':   # solo las víctimas cuentan como muertas
+            self.deadVictims += 1
+
         self.actionsLog.append(('model', 'deadPOI', y, x, kind))
+
 
 
     def updateNeighbors(self, x, y, coordinate, newStatus):
@@ -624,7 +635,9 @@ class ExplorerModel(Model):
         self.agentsGrid.move_agent(agent, (ax, ay))
         agent.positionX, agent.positionY = ax, ay
         agent.inAmbulance = True
-        self.actionsLog.append(('model', 'teleport', agent.idRobot, ax, ay))
+        if agent.posPOI != None:
+            self.deadPOI(agent.posPOI[0],agent.posPOI[1])
+        self.actionsLog.append(('model', 'teleport', agent.idRobot, ay, ax))
         
     def knockdown(self, agent):
         # Si llevaba víctima, se pierde
@@ -644,10 +657,12 @@ class ExplorerModel(Model):
     def checkGameOver(self):
         if self.damagedWalls >= self.maxDamagedWalls:
             print("[GAME OVER] El edificio colapsó")
+            # self.hasDiedByWalls += 1
             return False
 
         if self.deadVictims >= self.maxDeadVictims:
             print("[GAME OVER] Han muerto 4 víctimas")
+            # self.hasDiedByVictims += 1
             return False
 
         if self.savedVictims >= self.victimsToSave:
@@ -734,28 +749,19 @@ def gridArray(model):
 
 agent_names = ["purple", "pink", "red", "blue", "orange", "green"]
 num_steps = 50 # cuántos pasos quieres simular desde el estado actual
-ITERATIONS = 10
+ITERATIONS = 1000
 results = []  # víctimas salvadas en cada simulación
-
+ganadas = 0
+perdidas = 0
+total_died_walls = 0
+total_died_victims = 0
+total_diedPersons = 0
 for i in range(ITERATIONS):
     print("ITERATION: ", i)
     model = ExplorerModel(agent_names, False)
-    # model.agents[0].inAmbulance = True
     allGrids = []
     model.print_grid()
     print("----------------------")
-
-    # agent = model.agents[0]
-
-    # print(f"\n[Simulación {i+1}]")
-    # print(f"Agente {agent.idRobot} empieza en {agent.positionX, agent.positionY}")
-    # agent.carriesPOI = True
-    # agent.posPOI = (5,1)
-
-    # if path:
-    #     print("Camino encontrado:", path)
-    # else:
-    #     print("No hay camino disponible.")
     
     while model.checkGameOver():
     # while model.currentStep < num_steps:
@@ -764,17 +770,42 @@ for i in range(ITERATIONS):
         model.currentStep += 1
     model.print_grid()
 
+    # Evaluar resultado de la simulación
+    if model.savedVictims >= model.victimsToSave:
+        ganadas += 1
+    else:
+        perdidas += 1
+        # Verificar la causa de la pérdida
+        if model.damagedWalls >= model.maxDamagedWalls:
+            total_died_walls += 1
+        if model.deadVictims >= model.maxDeadVictims:
+            total_died_victims += 1
+    
+    #  # Acumular estadísticas
+    # total_died_walls += model.hasDiedByWalls
+    # total_died_victims += model.hasDiedByVictims
+    # total_diedPersons += model.deadVictims
+
     # guardar resultado de víctimas salvadas
     results.append(model.savedVictims)
+    
+print(f"Simulaciones ganadas: {ganadas}")
+print(f"Simulaciones perdidas: {perdidas}")
+
+print(f"Simulaciones terminadas por colapso de paredes: {total_died_walls}")
+print(f"Simulaciones terminadas por muerte de víctimas: {total_died_victims}")
+print(f"Total de victimas perdidas en todas las simulacioens: {total_diedPersons}")
 
 # ---- RESUMEN ----
 total_saved = sum(results)
 total_simulations = len(results)
+total_agents = len(agent_names) 
 
 print(f"Simulaciones totales: {total_simulations}")
 print(f"Total de víctimas salvadas: {total_saved}\n")
 
 maxSalvadas = 0
+
 print("Simulaciones con víctimas salvadas:")
 for i, saved in enumerate(results, start=1):
     if saved > 0:
@@ -785,62 +816,14 @@ for i, saved in enumerate(results, start=1):
 print("Maximo salvadas", maxSalvadas)
 
 
-# print("Estado inicial del tablero:")
-# model.print_grid()
-# print("----------------------")
+# agent = model.agents[0]
 
-# for agent in model.agents:
-#     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
-#           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
-    
-# print(f"TOTAL VICTIMS SAVED {model.savedVictims}")   
+# print(f"\n[Simulación {i+1}]")
+# print(f"Agente {agent.idRobot} empieza en {agent.positionX, agent.positionY}")
+# agent.carriesPOI = True
+# agent.posPOI = (5,1)
 
-
-# ------------- PRUEBA A* PARA 1 AGENTE ----------------------
-# agent = model.agents[0]  # tomar un agente cualquiera
-# agent.carriesPOI = False
-# agent.model.randomStatus = True  # activar modo aleatorio
-# # Definir un objetivo cualquiera (por ejemplo la salida más cercana)
-# pathfinder = agent.pathfinder
-# goal = (4,8) # reemplaza con coordenadas reales de la salida
-# path = pathfinder.aStar((agent.positionY, agent.positionX), goal)
-# print("Posición del agente:", agent.positionY, agent.positionX)
-# print("Goal:", goal[0], goal[1])
-
-# if path is None:
-#     print("A* no encontró camino.")
+# if path:
+#     print("Camino encontrado:", path)
 # else:
-#     print("Path devuelto por A* (modo aleatorio):")
-#     for step in path:
-#         print(step)
-
-
-# fig, axs = plt.subplots(figsize=(5, 5))
-# axs.set_xticks([])
-# axs.set_yticks([])
-
-# # Definir colores: 0=blanco, 1=rojo (fuego), 2=gris (humo)
-# cmap = ListedColormap(['white', 'red', 'gray'])
-# # Margen visual entre celdas
-# margin = 0.5
-# height, width = allGrids[0].shape
-# patch = axs.imshow(
-#     allGrids[0],
-#     cmap=cmap,
-#     extent=[-margin, width-1+margin, -margin, height-1+margin],
-#     interpolation='none'
-# )
-
-# def animate(i):
-#     patch.set_data(allGrids[i])
-#     return [patch]
-
-# anim = animation.FuncAnimation(
-#     fig,
-#     animate,
-#     frames=len(allGrids),
-#     interval=300,
-#     blit=True
-# )
-
-# plt.show()
+#     print("No hay camino disponible.")
