@@ -311,7 +311,7 @@ public class AgentManager : MonoBehaviour
         Random.InitState(hash);
 
         // Offset pequeño dentro de la celda (ej: 0.3f)
-        float maxOffset = 0.3f;
+        float maxOffset = 1f;
         float offsetX = Random.Range(-maxOffset, maxOffset);
         float offsetZ = Random.Range(-maxOffset, maxOffset);
 

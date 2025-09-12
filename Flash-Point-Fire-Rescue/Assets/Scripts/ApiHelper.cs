@@ -32,6 +32,7 @@ public class ApiHelper : MonoBehaviour
     public DoorsManager doorsManager;
     public AgentManager agentManager;
     public WallsManager wallsManager;
+    public DiceTester diceTester;
 
     public FullStatePayload lastFullState;
     public float groupPause = 0.25f; // pausa entre tipos de acciones
@@ -182,6 +183,8 @@ public class ApiHelper : MonoBehaviour
             agentManager.SetPOI(act.x, act.y);
         else if (act.action == "poiReveal")
             agentManager.RevealPOI(act.agent, act.x, act.y, act.kind);
+        else if (act.action == "dice")
+            diceTester.RollBoth(act.x, act.y);
         else if (act.action == "deadPOI")
         {
             Debug.Log($"ENTRO A DEADPOI");
