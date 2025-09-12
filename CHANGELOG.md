@@ -1,5 +1,12 @@
 # Changelog
 
+# [Ale/estrategy_mode] (10/09/2025)
+
+### Added
+- save pairs in a tuple list
+- getPosPair method
+- add missing actions to estrategyActions()
+
 # [kami/JSON] (10/09/2025)
 
 ### Added

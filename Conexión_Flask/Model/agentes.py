@@ -36,6 +36,7 @@ import datetime
 import random
 
 from .agentClass import RobotAgent
+from pathfinder import Pathfinder
 from collections import deque
 
 class Cell:
@@ -49,6 +50,7 @@ class Cell:
         self.smoke = False
         self.isExit = False
         self.poiHidden = None   # 'V' o 'F' si hay POI oculto
+        self.whoHasIt = None # quien tiene el poi
 
 class ExplorerModel(Model):
     def __init__(self,agent_names,  randomStatus,  width = 10, height = 8, numRobots = 6):
@@ -70,10 +72,11 @@ class ExplorerModel(Model):
         self.maxDeadVictims = 4       # pierde si llega aquí
         self.victimsToSave = 7        # gana si llega aquí
         
-        self.ambulanceSpots = [(0, 0), (5, 0), (6, 0), (9, 3), (9, 4), (0, 3), (0, 4), (3, 7), (4, 7)]
+        self.ambulanceSpots = [(5, 0), (6, 0), (9, 3), (9, 4), (0, 3), (0, 4), (3, 7), (4, 7)]
         self.newlyIgnited = set()  # {(x, y)} casillas que pasaron a fuego en el turno
 
         self.actionsLog = []
+        self.swapRolesNextTurn = []
 
         # Se llena el grid de los estados de las paredes
         # 0 -> ausencia
@@ -94,7 +97,7 @@ class ExplorerModel(Model):
         gridValues2 = [
             ["0000","0010","0010","0010","0010","0010","0000","0010","0010","0000"],
             ["0100","1001","1000","1000","1000","1100","0001","1000","1100","0001"],
-            ["0100","0001","0000","0110","0011","0010","0010","0010","0100","0001"],
+            ["0100","0101","0000","0110","0011","0010","0010","0010","0100","0001"],
             ["0000","0000","0000","1000","1000","1000","1100","1001","0100","0001"],
             ["0100","0011","0110","0011","0000","0010","0010","0010","0010","0000"],
             ["0100","1001","1000","1000","0000","1100","1001","1100","1101","0001"],
@@ -114,13 +117,14 @@ class ExplorerModel(Model):
             self.grid[y][x].fire = True
         print(f"[INIT] Fuego inicial en: {self.firePositions}")
         
-        self.exitPositions = [(0,6), (3,0), (7,3), (4,9)]
-        for y, x in self.exitPositions:
+        self.exitPositions = [(6,0), (0,3), (3,7), (9,4)]
+        for x, y in self.exitPositions:
             self.grid[y][x].isExit = True
         print(f"[INIT] Puertas inicial en: {self.exitPositions}")
 
-        for y, x in self.firePositions:
-            print(f"[DEBUG] FUEGO inicial en: {y,x, self.grid[y][x].fire}")
+        for x, y in self.firePositions:
+            print(f"[DEBUG] FUEGO inicial en: {x,y, self.grid[y][x].fire}")
+
         self.poiDeck = ['V'] * 10 + ['F'] * 5
         self.random.shuffle(self.poiDeck)
         self.poiPositions = []
@@ -177,11 +181,13 @@ class ExplorerModel(Model):
 
     # Definir parejas -> model.assignPairs
     def assignPairs(self):
-        entrances = [(0,6), (9,4), (3,7), (1,3)]
-        pairs = [(self.agentList[i], self.agentList[i+1]) for i in range(0, len(self.agentList)-1, 2)]
-        chosen = self.random.sample(entrances, k=min(3, len(pairs), len(entrances)))
+        entrances = [(6,0), (0,3), (3,7), (9,4)]
+        self.pairs = [(self.agentList[i], self.agentList[i+1]) 
+                        for i in range(0, len(self.agentList)-1, 2)]
 
-        for (a1, a2), (ex, ey) in zip(pairs, chosen):
+        chosen = self.random.sample(entrances, k=min(3, len(self.pairs), len(entrances)))
+
+        for (a1, a2), (ex, ey) in zip(self.pairs, chosen):
             # a1 directo en la entrada
             self.agentsGrid.place_agent(a1, (ex, ey))
             a1.positionX, a1.positionY = ex, ey
@@ -210,6 +216,25 @@ class ExplorerModel(Model):
                         print(f"[INIT] {a2.idRobot} en {(fx, fy)} (fallback)")
                         self.actionsLog.append(('initial', a2.idRobot, 'placeRobot', fy, fx))
                         break
+    
+    def getPosPair(self, idRobot):
+        for a1, a2 in self.pairs:
+            if a1.idRobot == idRobot:
+                return (a2.positionX, a2.positionY)
+            elif a2.idRobot == idRobot:
+                return (a1.positionX, a1.positionY)
+        return None
+    
+    def getPair(self, idRobot):
+        print("ENTRO GET PAIR")
+        for a1, a2 in self.pairs:
+            if a1.idRobot == idRobot:
+                # print("PAIR", a2.idRobot)
+                return (a2)
+            elif a2.idRobot == idRobot:
+                # print("PAIR", a1.idRobot)
+                return (a1)
+        return None
     
     def print_grid(self):
         for y in range(self.height):
@@ -406,7 +431,6 @@ class ExplorerModel(Model):
         return (self.damagedWalls == 24)
 
     def spreadFire(self, x, y):
-        print(y, x)
         cell = self.grid[y][x]
 
         if not cell.fire and not cell.smoke:
@@ -570,7 +594,7 @@ class ExplorerModel(Model):
 
         if kind == 'V':
             agent.carriesPOI = True
-            self.posPOI = (y, x)
+            agent.posPOI = (x, y)
             agent.rolRobot = 1
             agent.saveVictim()
             print(f"[POI|REVEAL] VÍCTIMA en {(x, y)} → {agent.idRobot} ahora la transporta")
@@ -592,6 +616,7 @@ class ExplorerModel(Model):
         ax, ay = pos
         self.agentsGrid.move_agent(agent, (ax, ay))
         agent.positionX, agent.positionY = ax, ay
+        agent.inAmbulance = True
         self.actionsLog.append(('model', 'teleport', agent.idRobot, ax, ay))
         
     def knockdown(self, agent):
@@ -623,6 +648,12 @@ class ExplorerModel(Model):
             return False
 
         return True
+    
+    def applyPendingRoleSwaps(self):
+        for a1, a2 in self.swapRolesNextTurn:
+            a1.rolRobot, a2.rolRobot = a2.rolRobot, a1.rolRobot
+            print(f"[INFO] Roles intercambiados: {a1.idRobot}->{a1.rolRobot}, {a2.idRobot}->{a2.rolRobot}")
+        self.swapRolesNextTurn.clear()
 
     def step(self):
         self.ensure3POI()
@@ -638,7 +669,11 @@ class ExplorerModel(Model):
 
         # agente del turno actual
         agent = self.agentList[self.current_turn]
-        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionY, agent.positionX)}")
+        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+        print(f"[TURN {self.currentStep}] Actúa agente {agent.idRobot} desde {(agent.positionX, agent.positionY)}")
+        print("Rol", agent.rolRobot)
+
+        # self.applyPendingRoleSwaps()
 
         agent.step()  # este agente gasta hasta 4 PA en su propio step()
 
@@ -687,16 +722,57 @@ def gridArray(model):
 
 
 agent_names = ["purple", "pink", "red", "blue", "orange", "green"]
-model = ExplorerModel(agent_names, True)
-allGrids = []
-num_steps = 40  # cuántos pasos quieres simular desde el estado actual
-model.print_grid()
-print("----------------------")
-while model.checkGameOver():
-    model.step()
-    allGrids.append(gridArray(model))
-    model.currentStep += 1
-model.print_grid()
+num_steps = 50 # cuántos pasos quieres simular desde el estado actual
+ITERATIONS = 10
+results = []  # víctimas salvadas en cada simulación
+
+for i in range(ITERATIONS):
+    print("ITERATION: ", i)
+    model = ExplorerModel(agent_names, False)
+    # model.agents[0].inAmbulance = True
+    allGrids = []
+    model.print_grid()
+    print("----------------------")
+
+    # agent = model.agents[0]
+
+    # print(f"\n[Simulación {i+1}]")
+    # print(f"Agente {agent.idRobot} empieza en {agent.positionX, agent.positionY}")
+    # agent.carriesPOI = True
+    # agent.posPOI = (5,1)
+
+    # if path:
+    #     print("Camino encontrado:", path)
+    # else:
+    #     print("No hay camino disponible.")
+    
+    while model.checkGameOver():
+    # while model.currentStep < num_steps:
+        model.step()
+        allGrids.append(gridArray(model))
+        model.currentStep += 1
+    model.print_grid()
+
+    # guardar resultado de víctimas salvadas
+    results.append(model.savedVictims)
+
+# ---- RESUMEN ----
+total_saved = sum(results)
+total_simulations = len(results)
+
+print(f"Simulaciones totales: {total_simulations}")
+print(f"Total de víctimas salvadas: {total_saved}\n")
+
+maxSalvadas = 0
+print("Simulaciones con víctimas salvadas:")
+for i, saved in enumerate(results, start=1):
+    if saved > 0:
+        print(f"Simulación {i}: {saved} víctimas salvadas")
+        if saved > maxSalvadas:
+            maxSalvadas = saved
+
+print("Maximo salvadas", maxSalvadas)
+
 
 # print("Estado inicial del tablero:")
 # model.print_grid()
@@ -705,6 +781,8 @@ model.print_grid()
 # for agent in model.agents:
 #     print(f"[Agente {agent.idRobot}] Posición: ({agent.positionY}, {agent.positionX}), "
 #           f"Lleva POI: {agent.carriesPOI}, Victimas salvadas: {agent.savedVictims}, AP: {agent.actionPoints}")
+    
+# print(f"TOTAL VICTIMS SAVED {model.savedVictims}")   
 
 
 # ------------- PRUEBA A* PARA 1 AGENTE ----------------------

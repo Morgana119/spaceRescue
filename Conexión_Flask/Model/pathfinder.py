@@ -1,70 +1,128 @@
 from heapq import heappush, heappop
-
 class Pathfinder:
     def __init__(self, agent):
         self.agent = agent # instancia de robot agente
         self.model = agent.model # instancia del modelo
-    
+
     def getNeighbors(self, pos):
         y, x = pos
         dirs = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # N, E, S, O
         neighbors = []
 
         for d, (dy,dx) in enumerate(dirs):
-            new_y, new_x = y + dy, x + dx            
-            # 1. Verificar que esté dentro del grid
+            new_y, new_x = y + dy, x + dx
+
             if not (0 <= new_y < self.model.height and 0 <= new_x < self.model.width):
                 continue
 
-            # 2. Validar paredes solo si estamos dentro
-            if (self.model.grid[y][x].walls[d] != 0):
+            if (self.model.grid[y][x].walls[d] == 1):
                 continue
 
-            #print("Valida:", new_y, new_x)
             dest = self.model.grid[new_y][new_x]
-            if dest.fire and self.agent.carriesPOI:
-                #print(self.agent.idRobot, "LLEVO POI Y HAY FUEGO", flush=True)
+            if (dest.fire and self.agent.carriesPOI):
                 continue
-    
 
             # agregar vecino como válido
-            neighbors.append(((new_y, new_x), d))  
-        # print(self.agent.rolRobot, self.agent.idRobot,"NEIGHBORS: ", neighbors)      
+            neighbors.append(((new_y, new_x), d))
         return neighbors
-    
+
     def heuristic(self, pos, goal):
         (y1, x1) = pos
         (y2, x2) = goal
         return abs(x2 - x1) + abs(y2 - y1)  # Manhattan
-    
+
     def choose_best_action(self, possible_actions, ny, nx):
         # print("Entro al choose", flush=True)
         # 0 -> apagaFuegos | 1 -> salvaVidas
         # acción : (costo_apagaFuego, costo_salvavida)
-        act_priority = {
-            'extinguir_llamas': (1, 4),         
-            'extinguir_humo': (2, 5),           
-            'moverse': (3, 1),                  
-            'abrir_puerta': (4, 3),            
-            'extinguir_llamas_parcialmente': (5, 6),
-            'moverse_a_llamas': (6, 7), 
-            'dañar_una_pared': (7, 8),     
-            'derribar_pared' : (8, 9)
-        }
 
+        # DA -> 62 (3) | 47 (2)
+        # act_priority = {
+        #     'putOutFire': (1, 4),
+        #     'putOutSmoke': (4, 5),
+        #     'move': (2, 1),
+        #     'openDoor': (3, 3),
+        #     'partiallyPutOutFire': (5, 6),
+        #     'moveToFire': (6, 7),
+        #     'knowckDownWall': (7, 8),
+        # }
+        # DA -> 0
+        # act_priority = {
+        #     'putOutFire': (2, 4),
+        #     'putOutSmoke': (4, 5),
+        #     'move': (3, 1),
+        #     'openDoor': (1, 3),
+        #     'partiallyPutOutFire': (5, 6),
+        #     'moveToFire': (6, 7),
+        #     'knowckDownWall': (7, 8),
+        # }
+         # DA -> 48 (2)  | 52 (2)
+        # act_priority = {
+        #     'putOutFire': (1, 4),
+        #     'putOutSmoke': (5, 5),
+        #     'move': (2, 1),
+        #     'openDoor': (4, 3),
+        #     'partiallyPutOutFire': (6, 6),
+        #     'moveToFire': (7, 7),
+        #     'knowckDownWall': (3, 8),
+        # }
+         # DA -> 45 (2)
+        # act_priority = {
+        #     'putOutFire': (1, 4),
+        #     'putOutSmoke': (5, 5),
+        #     'move': (2, 1),
+        #     'openDoor': (4, 3),
+        #     'partiallyPutOutFire': (6, 6),
+        #     'moveToFire': (7, 7),
+        #     'knowckDownWall': (3, 8),
+        # }
+        # DA -> 60 victimas salvadas | 56 (2) | 64 (2) | 59
+        # act_priority = {
+        #     'putOutFire': (1, 4),
+        #     'putOutSmoke': (5, 5),
+        #     'move': (2, 1),
+        #     'openDoor': (4, 3),
+        #     'partiallyPutOutFire': (6, 6),
+        #     'moveToFire': (7, 7),
+        #     'knowckDownWall': (3, 8),
+        # }
+
+        if self.agent.model.damagedWalls <= 18:
+            print("ENTRO AL 18")
+            # DA -> 51 (2) | 60 (2) | 44
+            act_priority = {
+                'putOutFire': (3, 2),
+                'putOutSmoke': (5, 5),
+                'move': (4, 1),
+                'openDoor': (2, 3),
+                'partiallyPutOutFire': (6, 6),
+                'moveToFire': (7, 7),
+                'knowckDownWall': (1, 4),
+            }
+        else:
+            print("ENTRO AL MAS")
+            # DA -> 51 (2) | 60 (2) | 44
+            act_priority = {
+                'putOutFire': (1, 2),
+                'putOutSmoke': (5, 5),
+                'move': (4, 1),
+                'openDoor': (2, 3),
+                'partiallyPutOutFire': (6, 6),
+                'moveToFire': (7, 7),
+                'knowckDownWall': (3, 4),
+            }
         best_action = None
         best_priority = float("inf")
 
         for action in possible_actions:
+            #print("DEBUG action:", action, type(action))
             if self.agent.rolRobot == 0:  # apagaFuegos
+                # print("A* apagafuegos: ", self.agent.rolRobot)
                 priority = act_priority[action][0]
-                # if ny==5 and nx==3:
-                #     print("ENtro a choose apaga Fuegos", ny, nx, priority)
-                    
+
             elif self.agent.rolRobot == 1:  # salvaVidas
+                # print("A* SV: ", self.agent.rolRobot)
                 priority = act_priority[action][1]
-                # if ny==5 and nx==3:
-                #     print("ENtro a choose SV", ny, nx, priority)
 
 
             if priority < best_priority:
@@ -73,172 +131,172 @@ class Pathfinder:
 
         # fallback (never return None)
         # if best_action is None:
-        #     best_action = "moverse"
+        #     best_action = "move"
 
-        # print(f"[RESULT] Agent {self.agent.idRobot} | Best priority: {best_priority} | Best action: {best_action} | POS: {self.agent.positionY, self.agent.positionX} | PÄRA {ny, nx}", flush=True)
-        # if ny==5 and nx==3:
-        #     print("Best action choosed", best_action, ny, nx)
         return best_action
 
-       
+
     def aStar(self, start, goal):
+        y_Start, x_Start = start
+        y_goal, x_goal = goal
+        dirs = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # N, E, S, O
+
         # print(self.agent.idRobot, "ENTRO AL A*")
         openSet = []
-        closedSet = set()           
-        heappush(openSet, (0, start))
+        closedSet = set()
+        heappush(openSet, (0, (y_Start, x_Start)))
         cameFrom = {}  # ahora guarda: { nodo: (padre, acción) }
-        gScore = {start : 0}
-        # print("Fuegos: ", self.agent.model.firePositions, flush=True)
+        gScore = {(y_Start, x_Start ) : 0}
 
         while openSet:
-            # print("Open set: ", openSet, "------------------------------------------------------", flush=True)
-            _, (x,y)= heappop(openSet)
-            # print(x, y, "CURRRR-------------------")
-            currentNode = x, y
-            # print("CURENT:NODE: ", currentNode, "------------------------------------------------", flush=True)
-            # print("Closed set: ", closedSet, "---------------------------------------------------", flush=True)
-            cy, cx = currentNode
-            cell_current = self.model.grid[cy][cx]
+            _, (y, x)= heappop(openSet)
+            currentNode = y, x
+            # if currentNode in closedSet:
+            #     print("ALready in clolsed set")
+            #     continue
+            # closedSet.add(currentNode)
 
-            # Guardar la acción junto con la posición
-
-            if currentNode == goal:
+            if currentNode == (y_goal, x_goal):
                 path = []
                 while currentNode in cameFrom:
                     parent, action = cameFrom[currentNode]
-                    path.append((currentNode, action))
+                    y, x = currentNode   # aquí lo tienes como y, x
+                    path.append(((x,y), action))  # lo guardas como x, y
                     currentNode = parent
                 path.reverse()
                 return path
 
             best_action = None
             for (neighbor, d) in self.getNeighbors(currentNode):
-                # print("Neighbor", neighbor, "--------------------------------------------------------------------------", flush=True)
-                #costo de moverse a la celda (igual que en move)
                 ny, nx = neighbor
 
-                for (pos, act) in closedSet:
-                    if pos == (ny, nx):
-                        # print("Entro al closed set con:", ny, nx, act)
-                        continue
-                
-                cell = self.model.grid[ny][nx]
-                # if ny==5 and nx==3:
-                #     print(self.agent.model.firePositions)
-                #     print("Cell", ny, nx, "Fire:",cell.fire,"Smoke", cell.smoke,possible_actions,  flush=True)
-                
+                if neighbor in closedSet:
+                    continue
 
-                if self.agent.model.randomStatus: 
-                    # print("Entro al random")
-                    # Para comportamiento aleatorio, solo usamos costo directo
-                    if self.agent.rolRobot == 1: 
-                        cost = 2 if cell.fire or self.agent.carriesPOI else 1
-                        best_action = 'moverse'
+                cell = self.model.grid[ny][nx]
+
+                if self.agent.model.randomStatus:
+                    if self.agent.rolRobot == 1:
+                        action_cost = 2 if cell.fire or self.agent.carriesPOI else 1
+                        best_action = 'move'
+                    else:
+                        # fallback para otros roles
                         action_cost = 1
+                        best_action = 'move'
                 else:
-                    # print("Entro al no random")
-                    # Aquí sigue la lógica de prioridad y costo real según rol
-                    
                     possible_actions = []
                     if cell.fire:
-                        possible_actions += ['extinguir_llamas', 'moverse_a_llamas', 'extinguir_llamas_parcialmente']
-                        # if ny==5 and nx==3:
-                        #     print("Cell.fire", ny, nx, cell.fire,possible_actions,  flush=True)
+                        possible_actions += ['putOutFire', 'moveToFire', 'partiallyPutOutFire']
                     elif cell.smoke:
-                        # print("Cell smoke", nx, ny, cell.smoke, flush=True)
-                        possible_actions.append('extinguir_humo')
-                        # if ny==5 and nx==3:
-                        #     print("Cell.smoke", ny, nx, cell.smoke,possible_actions,  flush=True)
-                    # elif cell.fire == False and cell.smoke == False:
+                        possible_actions.append('putOutSmoke')
+                    else:
+                        cell = self.model.grid[y][x]  # celda actual
+                        wall_value = cell.walls[d]      # pared en dirección d desde la celda actual
 
-                        # print("Entro aqui", flush=True)
-                    possible_actions += ['moverse', 'abrir_puerta', 'derribar_pared']
-                        # if ny==5 and nx==3:
-                        #     print("Cell alone", ny, nx,possible_actions,  flush=True)
-                    # print(self.agent.model.firePositions, "FIRE POSITIONS -------------------------------------------------------------------------------------------------", flush=True)
+                        if wall_value == 3:
+                            possible_actions.append('openDoor')
+                        elif wall_value == 0:
+                            possible_actions.append('move')
+                        elif wall_value == 1 or wall_value == 2:
+                            possible_actions.append('knowckDownWall')
+
+                    # possible_actions += ['move', 'openDoor', 'knowckDownWall']
                     best_action = self.choose_best_action(possible_actions, ny, nx)
-                    # if ny==5 and nx==3:
-                    #     print("Best action:", best_action, "-------------------------------------------------------------")
-
-                    # acción : (costo_apagaFuego, costo_salvavida)
+                    # print("BEST ACTION: ", best_action)
                     action_cost = {
-                        'extinguir_llamas': 2,         
-                        'extinguir_humo':1,           
-                        'moverse': 1,                  
-                        'abrir_puerta': 1,         
-                        'extinguir_llamas_parcialmente': 1,
-                        'moverse_a_llamas': 2,       
-                        'derribar_pared' : 4
+                        'putOutFire': 2,
+                        'putOutSmoke':1,
+                        'move': 1,
+                        'openDoor': 1,
+                        'partiallyPutOutFire': 1,
+                        'moveToFire': 2,
+                        'knowckDownWall' : 4
                     }[best_action]
 
-                # print("Besct cost: ", bestcost)
-                # cost = bestcost
                 tentativeG = gScore[currentNode] + action_cost
-                
-                # print("Posible actions: ", possible_actions)
 
                 if neighbor not in gScore or tentativeG < gScore[neighbor]:
-                    # print(neighbor,"-------------------------------------------#####", flush=True)
-                    if neighbor in closedSet:  # <-- revisar primero
-                        # print("ALREADY IN SET")
-                        continue
+                    # if neighbor in closedSet:
+                    #     continue
                     gScore[neighbor] = tentativeG
                     fScore = tentativeG + self.heuristic(neighbor, goal)
                     heappush(openSet, (fScore, neighbor))
-                    cameFrom[neighbor] = (currentNode, best_action) 
-                    closedSet.add((currentNode, best_action))
-        return None       
-    
-    def closestExit(self):
-        print(self.agent.idRobot,"Entro al closes Exit", flush=True)
-        print("PUNTOS DE ACCION ",self.agent.actionPoints)
-        print("POI", self.model.poiPositions)
-        exits = self.agent.model.exitPositions
+                    cameFrom[neighbor] = (currentNode, best_action)
+                    # print("CURR: ", currentNode, "Best action", best_action)
+                    # closedSet.add((currentNode, best_action))
+        return None
 
-        if (self.agent.positionY, self.agent.positionX) in exits:
-            print(f"Agente {self.agent.idRobot} YA ESTÁ en una salida -> no busca más")
-            return None, (self.agent.positionY, self.agent.positionX)
-        
+    def closestExit(self):
+        # print(self.agent.idRobot,"Entro al closes Exit", flush=True)
+        # print("PUNTOS DE ACCION ",self.agent.actionPoints)
+        exits = self.agent.model.exitPositions
+        print("CLOSETS EXITS: ", exits, "--------------------------------", flush=True)
+
+        if (self.agent.positionX, self.agent.positionY) in exits:
+            # print(f"Agente {self.agent.idRobot} YA ESTÁ en una salida -> no busca más")
+            return None, (self.agent.positionX, self.agent.positionY)
+
+        arr_YX_Pois = []
+        for exit in exits:
+            x, y = exit
+            arr_YX_Pois.append((y,x))
+        print(arr_YX_Pois)
+
         min_path = None
         exit_final = None
 
-        for exitPos in exits:
+        print("Agente POS: ", self.agent.positionY, self.agent.positionX)
+
+        for exitPos in arr_YX_Pois:
+            # print("EXITPOS: ", exitPos)
             path = self.aStar((self.agent.positionY, self.agent.positionX), exitPos)
             if path:
                 if min_path is None or len(path) < len(min_path):
                     exit_final = exitPos
                     min_path = path
-        
-        print("ROL", self.agent.idRobot, "MIN PATH: ", min_path, "desde", self.agent.positionY, self.agent.positionX, "hasta:", exit_final, flush=True)
+
+        if exit_final is None:
+            print(f"[WARN] Agente {self.agent.idRobot}: no hay camino a ninguna salida desde {self.agent.positionX}, {self.agent.positionY}")
+            return None, None
+
+        yFPOI, xFPOI = exit_final
+        exit = xFPOI, yFPOI
+        print("ROL", self.agent.idRobot, "MIN PATH: ", min_path, "desde", self.agent.positionX, self.agent.positionY, "hasta:",  exit, flush=True)
         print("Fuegos: ", self.agent.model.firePositions)
-        return min_path, exit_final
+        return min_path, exit
 
     ## Encontrar un POI
     def closestPOI(self):
-        print("Entro al closest POI")
+        # print("Entro al closest POI")
         pois = self.agent.model.poiPositions
 
         if (self.agent.positionY, self.agent.positionX) in pois:
-            print(f"POI {self.agent.idRobot} YA ESTÁ en un poi -> no busca más")
-            return None, (self.agent.positionY, self.agent.positionX)
-        
+            # print(f"POI {self.agent.idRobot} YA ESTÁ en un poi -> no busca más")
+            return None, (self.agent.positionX, self.agent.positionY)
+
         min_path = None
         final_poi = None
-
-        # print(">>> Revisión de consistencia fuego:")
-        # for (fy, fx) in self.agent.model.firePositions:
-        #     print((fy, fx), "->", self.model.grid[fy][fx].fire)
+        arr_YX_Pois = []
 
         for poi in pois:
+            # print("POI: ", poi)
+            x, y = poi
+            arr_YX_Pois.append((y,x))
+        # print(arr_YX_Pois)
+
+        for poi in arr_YX_Pois:
             path = self.aStar((self.agent.positionY, self.agent.positionX), poi)
             if path:
                 if min_path is None or len(path) < len(min_path):
                     final_poi = poi
                     min_path = path
-        print("ROL", self.agent.rolRobot,"MIN PATH: ", min_path, "desde", self.agent.positionY, self.agent.positionX, "hasta:", final_poi, flush=True)
-        print("Fuegos: ", self.agent.model.firePositions, flush=True)
-        # print(">>> Revisión de consistencia fuego:")
-        # for (fy, fx) in self.agent.model.firePositions:
-        #     print((fy, fx), "->", self.model.grid[fy][fx].fire)
-        return min_path, final_poi
 
+        if final_poi is None:
+            # print(f"[WARN] Agente {self.agent.idRobot}: no encontro ningún POI desde {self.agent.positionX}, {self.agent.positionY}")
+            return None, None
+
+        yFPOI, xFPOI = final_poi
+        final = xFPOI, yFPOI
+        # print("ROL", self.agent.rolRobot,"MIN PATH: ", min_path, "desde", self.agent.positionX, self.agent.positionY, "hasta:", xFPOI, yFPOI, flush=True)
+        # print("Fuegos: ", self.agent.model.firePositions, flush=True)
+        return min_path, final
