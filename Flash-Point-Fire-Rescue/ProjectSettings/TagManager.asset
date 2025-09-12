@@ -6,6 +6,19 @@ TagManager:
   tags:
   - Fire
   - Smoke
+  - openDoor
+  - closeDoor
+  - damagedWall
+  - destroyedWall
+  - blue
+  - purple
+  - orange
+  - red
+  - pink
+  - green
+  - poi
+  - falseAlarm
+  - victim
   layers:
   - Default
   - TransparentFX

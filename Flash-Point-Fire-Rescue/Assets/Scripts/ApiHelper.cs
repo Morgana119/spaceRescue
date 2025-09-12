@@ -10,8 +10,9 @@ public class ActionPayload
     public string action;
     public int x;
     public int y;
-    public string agent;   
-    public string kind; 
+    public string agent;
+    public string kind;
+    public int direction;
 }
 
 [System.Serializable]
@@ -24,11 +25,18 @@ public class ApiHelper : MonoBehaviour
 {
     public string url = "http://127.0.0.1:5000";
     public float updateInterval = 2f;
-    public float actionDelay = 0.3f;
+    public float actionDelay = 0.3f;     // pausa entre acciones normales
+    public float pauseAfterMove = 0.3f;  // pausa extra tras terminar un movimiento
+
     public GridFireManager gridFireManager;
-    public AgentManager agentManager; // Asume que tienes un nuevo manager para los agentes.
+    public DoorsManager doorsManager;
+    public AgentManager agentManager;
+    public WallsManager wallsManager;
+    public DiceTester diceTester;
 
     public FullStatePayload lastFullState;
+    public float groupPause = 0.25f; // pausa entre tipos de acciones
+
 
     void Start()
     {
@@ -63,42 +71,99 @@ public class ApiHelper : MonoBehaviour
 
                 if (lastFullState != null && lastFullState.actions != null)
                 {
-                    var agentActions = lastFullState.actions.Where(a => a.source == "agent").ToArray();
-                    var modelActions = lastFullState.actions.Where(a => a.source == "model").ToArray();
+                    var allActions = lastFullState.actions
+                        .Where(a => a.source != null)
+                        .ToArray();
 
-                    foreach (var act in agentActions)
-                    {   
-                        Debug.Log($"[ApiHelper] Acción recibida: {act.action} en ({act.x},{act.y}) desde {act.source}");
-                        ApplyAgentAction(act);
-                        yield return new WaitForSeconds(actionDelay);
+                    foreach (var act in allActions)
+                    {
+                        Debug.Log($"[ApiHelper] {act.source.ToUpper()}: {act.action} ({act.x},{act.y})");
+
+                        switch (act.source.ToLowerInvariant())
+                        {
+                            case "initial":
+                                yield return StartCoroutine(ApplyInitialAction(act));
+                                break;
+
+                            case "agent":
+                                yield return StartCoroutine(ApplyAgentAction(act));
+                                break;
+
+                            case "model":
+                                yield return StartCoroutine(ApplyModelAction(act));
+                                break;
+                        }
+
+                        // si quieres, puedes seguir esperando a que se sincronicen los agentes
+                        if (act.source.ToLowerInvariant() == "agent")
+                        {
+                            yield return StartCoroutine(agentManager.WaitForAllAgentsIdle());
+                            yield return new WaitForSeconds(groupPause);
+                        }
                     }
 
-                    foreach (var act in modelActions)
-                    {   
-                        Debug.Log($"[ApiHelper] Acción recibida: {act.action} en ({act.x},{act.y}) desde {act.source}");
-                        ApplyModelAction(act);
-                        yield return new WaitForSeconds(actionDelay);
-                    }
                 }
             }
         }
     }
 
-    void ApplyAgentAction(ActionPayload act)
+    // ===== Corrutinas de aplicación de acciones =====
+
+    IEnumerator ApplyAgentAction(ActionPayload act)
     {
-        if (agentManager == null) return;
+        if (agentManager == null) yield break;
 
         if (act.action == "extinguish")
+        {
             gridFireManager.ApplyChange("extinguish", act.x, act.y);
+            yield return new WaitForSeconds(actionDelay);
+        }
         else if (act.action == "smoke")
+        {
             gridFireManager.ApplyChange("smoke", act.x, act.y);
+            yield return new WaitForSeconds(actionDelay);
+        }
         else if (act.action == "stopSmoke")
+        {
             gridFireManager.ApplyChange("stopSmoke", act.x, act.y);
+            yield return new WaitForSeconds(actionDelay);
+        }
+        else if (act.action == "weakenWall")
+        {
+            wallsManager.DamageWall(act.x, act.y, act.direction);
+            yield return new WaitForSeconds(actionDelay);
+        }
+        else if (act.action == "breakWall")
+        {
+            wallsManager.BreakWall(act.x, act.y, act.direction);
+            yield return new WaitForSeconds(actionDelay);
+        }
+        else if (act.action == "openDoor")
+        {
+            doorsManager.OpenDoor(act.x, act.y, act.direction);
+            yield return new WaitForSeconds(actionDelay);
+        }
+        else if (act.action == "move")
+        {
+            // 1) iniciar movimiento
+            agentManager.MoveAgentTo(act.agent, act.x, act.y);
+
+            // 2) esperar a que ese agente termine de moverse
+            yield return StartCoroutine(agentManager.WaitUntilIdle(act.agent));
+
+            // 3) pausa extra de respiro
+            yield return new WaitForSeconds(pauseAfterMove);
+        }
+        else
+        {
+            // acción desconocida: respeta pacing
+            yield return new WaitForSeconds(actionDelay);
+        }
     }
 
-    void ApplyModelAction(ActionPayload act)
+    IEnumerator ApplyModelAction(ActionPayload act)
     {
-        if (gridFireManager == null) return;
+        if (gridFireManager == null) yield break;
 
         if (act.action == "ignite")
             gridFireManager.ApplyChange("fire", act.x, act.y);
@@ -108,6 +173,41 @@ public class ApiHelper : MonoBehaviour
             gridFireManager.ApplyChange("stopSmoke", act.x, act.y);
         else if (act.action == "extinguish")
             gridFireManager.ApplyChange("extinguish", act.x, act.y);
+        else if (act.action == "openDoor")
+            doorsManager.OpenDoor(act.x, act.y, act.direction);
+        else if (act.action == "weakenWall")
+            wallsManager.DamageWall(act.x, act.y, act.direction);
+        else if (act.action == "breakWall")
+            wallsManager.BreakWall(act.x, act.y, act.direction);
+        else if (act.action == "poiPlaced")
+            agentManager.SetPOI(act.x, act.y);
+        else if (act.action == "poiReveal")
+            agentManager.RevealPOI(act.agent, act.x, act.y, act.kind);
+        else if (act.action == "dice")
+            diceTester.RollBoth(act.x, act.y);
+        else if (act.action == "deadPOI")
+        {
+            Debug.Log($"ENTRO A DEADPOI");
+            agentManager.RevealPOIDead(act.x, act.y, act.kind);
+            yield return new WaitForSeconds(actionDelay);
+            agentManager.DeadPOI(act.x, act.y, act.kind);
+            yield return new WaitForSeconds(pauseAfterMove);
+        } else if (act.action == "teleport")
+            agentManager.SetAgentPosition(act.agent, act.x, act.y);
+        
+
+        yield return new WaitForSeconds(actionDelay);
     }
 
+    IEnumerator ApplyInitialAction(ActionPayload act)
+    {
+        if (agentManager == null) yield break;
+
+        if (act.action == "placeRobot")
+            agentManager.SetAgentPosition(act.agent, act.x, act.y);
+        else if (act.action == "poiPlaced")
+            agentManager.SetPOI(act.x, act.y);
+
+        yield return new WaitForSeconds(actionDelay);
+    }
 }

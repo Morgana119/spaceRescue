@@ -44,7 +44,7 @@ def all_agents_pos():
 '''
 
 # Agent names
-agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
+agent_names = ["purple", "pink", "red", "blue", "orange", "green"]
 
 # Se inicializa el modelo con esos agentes
 # Cada agente recibe un nombre y una posición inicial aleatoria
@@ -61,7 +61,7 @@ agent_names = ["morado", "rosa", "rojo", "azul", "naranja", "verde"]
 #     model.step()
 #     # Devuelve en formato JSON las posiciones actualizadas de todos los agentes
 #     return jsonify(model.get_payload())
-explorer_model = ExplorerModel(agent_names)
+explorer_model = ExplorerModel(agent_names, False)
 
 @agent_bp.route("/state", methods=["GET"])
 def get_state():

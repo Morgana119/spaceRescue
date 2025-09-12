@@ -1,12 +1,42 @@
 # Changelog
 
+# [Ale/estrategy_mode] (10/09/2025)
+
+### Added
+- save pairs in a tuple list
+- getPosPair method
+- add missing actions to estrategyActions()
+
+# [kami/JSON] (10/09/2025)
+
+### Added
+- Add agents action into Unity
+- Create AgentManager
+- Add agent actions into ApiHelper
+- Add placePOI into Unity
+- Add revealPOI into unity
+
+### Changed
+- Fire won't move outside of the house grid
+- Extinguish Fire from agent condition
+- Place new POI for fire and smoke 
+
+### Fixed
+- Y position of tokens and agents
+- initial position of agents in Unity
+
+
+# [fa/saveVictim] (09/09/2025)
+
+### Added
+- Add actionLogs to saveVictim method
+
 # [Ale/AStar] (09/09/2025)
 
 ### Fixed
 - Closest POI function implemented
 - AStar for not random model status works correctly
 - Merge with Kami/JSON & develop
-
 
 # [fa/agentes] (08/09/2025)
 
